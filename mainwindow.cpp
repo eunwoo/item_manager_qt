@@ -281,9 +281,6 @@ void MainWindow::exportToTxt(QString filename, bool is_only_editable, int export
     QTextStream out(&file);
     out.setCodec("UTF-8");
     QString strOut;
-    auto row       = 1;
-    out << strOut.sprintf("%20s%20s%20s\n", QString::fromUtf8("품 명").toUtf8().constData(), QString::fromUtf8("가 격").toUtf8().constData(), QString::fromUtf8("재 고").toUtf8().constData());
-    row++;
     for(int i = 0; i < ui->tableWidget->rowCount(); ++i) {
         if(ui->tableWidget->item(i, 0) == nullptr) break;
         if(QString::compare(ui->tableWidget->item(i, 0)->text(), "", Qt::CaseInsensitive) == 0) {
@@ -291,11 +288,21 @@ void MainWindow::exportToTxt(QString filename, bool is_only_editable, int export
         }
         if(!is_only_editable || (ui->tableWidget->item(i, 0)->flags() & Qt::ItemIsEditable)) {
             QString strCell1;
-            strCell1.sprintf("%20s", ui->tableWidget->item(i, 0)->text().toUtf8().constData());
-            out << strCell1;
-            if(QString::compare(ui->tableWidget->item(i,1)->text(), "") == 0) {
-                strCell1.sprintf("%20s", "");
+            if(QString::compare(ui->tableWidget->item(i, 0)->text(), "@@") == 0) {
+                out << "\n";
+                continue;
+            }
+            else {
+                strCell1.sprintf("%s", ui->tableWidget->item(i, 0)->text().toUtf8().constData());
                 out << strCell1;
+            }
+            out << " - ";
+            // 가격 출력
+            if(QString::compare(ui->tableWidget->item(i,1)->text(), "") == 0) {
+                strCell1.sprintf("%s", "");
+                out << strCell1;
+                out << "\n";
+                continue;
             }
             else {
                 float price_multiplied = ui->tableWidget->item(i,1)->text().toFloat() * ui->lineEdit->text().toFloat();
@@ -307,12 +314,21 @@ void MainWindow::exportToTxt(QString filename, bool is_only_editable, int export
                 if(export_option > 0 && QString::compare(strEquivItem, "") != 0) {
                     strList << " 또는 " << strEquivItem;
                 }
-                strCell1.sprintf("%20s",strList.join("").toUtf8().constData());
+                strCell1.sprintf("%s",strList.join("").toUtf8().constData());
+                out << strCell1;
             }
-            strCell1.sprintf("%20s", ui->tableWidget->item(i, 2)->text().toUtf8().constData());
-            out << strCell1;
-            out << "\n";
-            row++;
+            // 재고 출력
+            strOut.sprintf("%s", QString::fromUtf8(" (재고: ").toUtf8().constData());
+            out << strOut;
+            if(QString::compare(ui->tableWidget->item(i,2)->text(), "") == 0) {
+                out << "0";
+            }
+            else {
+                strCell1.sprintf("%s", ui->tableWidget->item(i, 2)->text().toUtf8().constData());
+                out << strCell1;
+            }
+            strOut.sprintf("%s", QString::fromUtf8("개)\n").toUtf8().constData());
+            out << strOut;
         }
     }
     file.flush();
