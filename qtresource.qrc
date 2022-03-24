@@ -1,0 +1,9 @@
+<RCC>
+    <qresource prefix="/new/prefix1">
+        <file>down.png</file>
+        <file>up.png</file>
+        <file>cross-circle.png</file>
+        <file>document-copy.png</file>
+        <file>new.png</file>
+    </qresource>
+</RCC>

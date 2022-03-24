@@ -16,30 +16,109 @@
   <widget class="QWidget" name="centralwidget">
    <layout class="QVBoxLayout" name="verticalLayout">
     <item>
-     <layout class="QHBoxLayout" name="horizontalLayout">
+     <layout class="QVBoxLayout" name="verticalLayout_4">
       <item>
-       <widget class="QLineEdit" name="lineEdit"/>
+       <layout class="QHBoxLayout" name="horizontalLayout">
+        <item>
+         <widget class="QPushButton" name="pushButton">
+          <property name="text">
+           <string>불러오기</string>
+          </property>
+         </widget>
+        </item>
+        <item>
+         <widget class="QPushButton" name="pushButton_2">
+          <property name="text">
+           <string>내보내기(전체)</string>
+          </property>
+         </widget>
+        </item>
+        <item>
+         <widget class="QPushButton" name="pushButton_3">
+          <property name="text">
+           <string>내보내기(활성화만)</string>
+          </property>
+         </widget>
+        </item>
+        <item>
+         <widget class="QLabel" name="label_2">
+          <property name="text">
+           <string>기준값x</string>
+          </property>
+         </widget>
+        </item>
+        <item>
+         <widget class="QLineEdit" name="lineEdit"/>
+        </item>
+        <item>
+         <widget class="QComboBox" name="comboBox"/>
+        </item>
+       </layout>
       </item>
       <item>
-       <widget class="QPushButton" name="pushButton">
-        <property name="text">
-         <string>불러오기</string>
-        </property>
-       </widget>
-      </item>
-      <item>
-       <widget class="QPushButton" name="pushButton_2">
-        <property name="text">
-         <string>저장하기</string>
-        </property>
-       </widget>
-      </item>
-     </layout>
-    </item>
-    <item>
-     <layout class="QVBoxLayout" name="verticalLayout_2">
-      <item>
-       <widget class="ItemTable" name="tableWidget"/>
+       <layout class="QHBoxLayout" name="horizontalLayout_3">
+        <item>
+         <widget class="QTabWidget" name="tabWidget">
+          <property name="currentIndex">
+           <number>0</number>
+          </property>
+          <widget class="QWidget" name="tab">
+           <attribute name="title">
+            <string>아이템</string>
+           </attribute>
+           <layout class="QVBoxLayout" name="verticalLayout_5">
+            <item>
+             <layout class="QVBoxLayout" name="verticalLayout_2">
+              <item>
+               <layout class="QHBoxLayout" name="horizontalLayout_2">
+                <item>
+                 <widget class="QLabel" name="label">
+                  <property name="text">
+                   <string>찾기</string>
+                  </property>
+                 </widget>
+                </item>
+                <item>
+                 <widget class="LineEdit" name="lineEdit_2"/>
+                </item>
+               </layout>
+              </item>
+              <item>
+               <widget class="ItemTable" name="tableWidget"/>
+              </item>
+             </layout>
+            </item>
+           </layout>
+          </widget>
+          <widget class="QWidget" name="tab_2">
+           <property name="minimumSize">
+            <size>
+             <width>0</width>
+             <height>0</height>
+            </size>
+           </property>
+           <property name="maximumSize">
+            <size>
+             <width>16777215</width>
+             <height>16777215</height>
+            </size>
+           </property>
+           <attribute name="title">
+            <string>매칭테이블</string>
+           </attribute>
+           <layout class="QVBoxLayout" name="verticalLayout_6">
+            <item>
+             <layout class="QVBoxLayout" name="verticalLayout_3">
+              <item>
+               <widget class="MatchTable" name="matchTableWidget"/>
+              </item>
+             </layout>
+            </item>
+           </layout>
+          </widget>
+         </widget>
+        </item>
+       </layout>
       </item>
      </layout>
     </item>
@@ -54,8 +133,95 @@
      <height>22</height>
     </rect>
    </property>
+   <widget class="QMenu" name="menu_f">
+    <property name="title">
+     <string>파일(&amp;F)</string>
+    </property>
+    <addaction name="action"/>
+    <addaction name="action_U"/>
+   </widget>
+   <addaction name="menu_f"/>
   </widget>
   <widget class="QStatusBar" name="statusbar"/>
+  <widget class="QToolBar" name="toolBar">
+   <property name="windowTitle">
+    <string>toolBar</string>
+   </property>
+   <attribute name="toolBarArea">
+    <enum>TopToolBarArea</enum>
+   </attribute>
+   <attribute name="toolBarBreak">
+    <bool>false</bool>
+   </attribute>
+   <addaction name="action"/>
+   <addaction name="action_U"/>
+   <addaction name="action_E"/>
+   <addaction name="action_Q"/>
+   <addaction name="action_A"/>
+  </widget>
+  <action name="action">
+   <property name="icon">
+    <iconset resource="qtresource.qrc">
+     <normaloff>:/new/prefix1/new.png</normaloff>:/new/prefix1/new.png</iconset>
+   </property>
+   <property name="text">
+    <string>새로만들기(&amp;N)</string>
+   </property>
+   <property name="shortcut">
+    <string>Ctrl+N</string>
+   </property>
+  </action>
+  <action name="action_U">
+   <property name="icon">
+    <iconset resource="qtresource.qrc">
+     <normaloff>:/new/prefix1/document-copy.png</normaloff>:/new/prefix1/document-copy.png</iconset>
+   </property>
+   <property name="text">
+    <string>복제하기(&amp;U)</string>
+   </property>
+   <property name="shortcut">
+    <string>Ctrl+U</string>
+   </property>
+  </action>
+  <action name="action_E">
+   <property name="icon">
+    <iconset resource="qtresource.qrc">
+     <normaloff>:/new/prefix1/cross-circle.png</normaloff>:/new/prefix1/cross-circle.png</iconset>
+   </property>
+   <property name="text">
+    <string>활성화변경(&amp;E)</string>
+   </property>
+   <property name="shortcut">
+    <string>Ctrl+E</string>
+   </property>
+  </action>
+  <action name="action_Q">
+   <property name="icon">
+    <iconset resource="qtresource.qrc">
+     <normaloff>:/new/prefix1/up.png</normaloff>:/new/prefix1/up.png</iconset>
+   </property>
+   <property name="text">
+    <string>위로이동(&amp;Q)</string>
+   </property>
+   <property name="toolTip">
+    <string>위로이동(Q)</string>
+   </property>
+   <property name="shortcut">
+    <string>Ctrl+Q</string>
+   </property>
+  </action>
+  <action name="action_A">
+   <property name="icon">
+    <iconset resource="qtresource.qrc">
+     <normaloff>:/new/prefix1/down.png</normaloff>:/new/prefix1/down.png</iconset>
+   </property>
+   <property name="text">
+    <string>아래로이동(&amp;A)</string>
+   </property>
+   <property name="shortcut">
+    <string>Ctrl+A</string>
+   </property>
+  </action>
  </widget>
  <customwidgets>
   <customwidget>
@@ -63,7 +229,19 @@
    <extends>QTableWidget</extends>
    <header>itemtable.h</header>
   </customwidget>
+  <customwidget>
+   <class>LineEdit</class>
+   <extends>QLineEdit</extends>
+   <header>lineedit.h</header>
+  </customwidget>
+  <customwidget>
+   <class>MatchTable</class>
+   <extends>QTableWidget</extends>
+   <header>matchtable.h</header>
+  </customwidget>
  </customwidgets>
- <resources/>
+ <resources>
+  <include location="qtresource.qrc"/>
+ </resources>
  <connections/>
 </ui>

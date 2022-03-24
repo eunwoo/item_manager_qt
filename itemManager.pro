@@ -10,17 +10,27 @@ CONFIG += c++11
 
 SOURCES += \
     ItemTable.cpp \
+    lineedit.cpp \
     main.cpp \
-    mainwindow.cpp
+    mainwindow.cpp \
+    matchtable.cpp \
+    newitemdialog.cpp
 
 HEADERS += \
     ItemTable.h \
-    mainwindow.h
+    lineedit.h \
+    mainwindow.h \
+    matchtable.h \
+    newitemdialog.h
 
 FORMS += \
-    mainwindow.ui
+    mainwindow.ui \
+    newitemdialog.ui
 
 # Default rules for deployment.
 qnx: target.path = /tmp/$${TARGET}/bin
 else: unix:!android: target.path = /opt/$${TARGET}/bin
 !isEmpty(target.path): INSTALLS += target
+
+RESOURCES += \
+    qtresource.qrc
