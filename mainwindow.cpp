@@ -373,6 +373,11 @@ void MainWindow::keyPressEvent(QKeyEvent *event)
     qInfo() << "MainWindow::onKeyPressEvent";
     if(event->key() == Qt::Key_Return) {
     }
+    else if(event->key() == Qt::Key_Delete) {
+        int row = ui->tableWidget->currentRow();
+        if(row == -1) return;
+        ui->tableWidget->removeRow(row);
+    }
     else QMainWindow::keyPressEvent(event);
 }
 void MainWindow::FindValueChanged(QString text)

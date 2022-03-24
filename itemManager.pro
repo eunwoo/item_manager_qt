@@ -25,6 +25,7 @@ HEADERS += \
 
 FORMS += \
     mainwindow.ui \
+    newitemdialog.ui \
     newitemdialog.ui
 
 # Default rules for deployment.
