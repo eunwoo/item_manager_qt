@@ -94,15 +94,20 @@ void MainWindow::on_pushButton_clicked()    // 불러오기
         if(QString::compare(data1.toString(), "", Qt::CaseInsensitive) == 0) {
             break;
         }
-//        qInfo() << data1.typeName();
-//        qInfo() << cCell1->dynamicCall("Value()");
-//        qInfo() << data2.typeName();
-//        qInfo() << cCell2->dynamicCall("Value()");
-//        qInfo() << data3.typeName();
-//        qInfo() << cCell3->dynamicCall("Value()");
         QString strPrice = data2.toString();
         QStringList splitPrice = strPrice.split("또는");
         ui->tableWidget->AddItem(data1.toString(), splitPrice[0].trimmed(), data3.toString(), r - 1);
+
+        auto cCell4 = sheet->querySubObject("Cells(int,int)", r + 1, 4);
+        QVariant data4 = cCell4->dynamicCall("Value()");
+        CellItemChkBox *cell_widget = new CellItemChkBox();
+        if(QString::compare(data4.toString(), "비공란") == 0) {
+            cell_widget->SetCheck(Qt::Checked);
+        }
+        else {
+            cell_widget->SetCheck(Qt::Unchecked);
+        }
+        ui->tableWidget->setCellWidget(r-1, 3, cell_widget);
     }
 
     sheet = sheets->querySubObject("Item(int)", 2);
@@ -116,12 +121,6 @@ void MainWindow::on_pushButton_clicked()    // 불러오기
         if(QString::compare(data1.toString(), "", Qt::CaseInsensitive) == 0) {
             break;
         }
-//        qInfo() << data1.typeName();
-//        qInfo() << cCell1->dynamicCall("Value()");
-//        qInfo() << data2.typeName();
-//        qInfo() << cCell2->dynamicCall("Value()");
-//        qInfo() << data3.typeName();
-//        qInfo() << cCell3->dynamicCall("Value()");
         ui->matchTableWidget->AddItem(data1.toString(), data2.toString(), data3.toString(), r - 1);
     }
 
@@ -169,7 +168,7 @@ QString MainWindow::GetEquivalentItem(float price, int option)
  * https://cpp.hotexamples.com/de/examples/-/QAxObject/-/cpp-qaxobject-class-examples.html
  */
 
-void MainWindow::exportToExcel(QString filename, bool is_only_editable, int export_option)
+void MainWindow::exportToExcel(QString filename, bool is_only_editable, int export_option)  // 엑셀로 내보내기
 {
     auto excel     = new QAxObject("Excel.Application");
     auto workbooks = excel->querySubObject("Workbooks");
@@ -216,6 +215,9 @@ void MainWindow::exportToExcel(QString filename, bool is_only_editable, int expo
                 sheet->querySubObject("Cells(Int,Int)",row,2)->setProperty("Value",strList.join(""));
             }
             sheet->querySubObject("Cells(Int,Int)",row,3)->setProperty("Value",ui->tableWidget->item(i, 2)->text());
+
+            sheet->querySubObject("Cells(Int,Int)",row,4)->setProperty("Value",isActivated?"비공란":"공란");
+
             row++;
         }
     }
@@ -593,6 +595,14 @@ void MainWindow::SwapTableItem(QTableWidget *tablewidget, int rowSrc, int rowDes
     itemDst = tablewidget->takeItem(rowDest, 2);
     tablewidget->setItem(rowSrc, 2, itemDst);
     tablewidget->setItem(rowDest, 2, itemSrc);
+
+    // 활성화 체크 상태 swap
+    CellItemChkBox *chkWidgetSrc = (CellItemChkBox *)tablewidget->cellWidget(rowSrc, 3);
+    CellItemChkBox *chkWidgetDst = (CellItemChkBox *)tablewidget->cellWidget(rowDest, 3);
+    Qt::CheckState chkSrc = chkWidgetSrc->GetCheck();
+    Qt::CheckState chkDst = chkWidgetDst->GetCheck();
+    chkWidgetSrc->SetCheck(chkDst);
+    chkWidgetDst->SetCheck(chkSrc);
 }
 
 void MainWindow::on_action_Q_triggered()    // 위로 이동
@@ -601,16 +611,29 @@ void MainWindow::on_action_Q_triggered()    // 위로 이동
     if(row == 0) return;
 
     if(ui->tabWidget->currentIndex() == 0) {
+
+        QList<QModelIndex> *selectAfter = new QList<QModelIndex>();
         QList<QTableWidgetSelectionRange> range = ui->tableWidget->selectedRanges();
+        QMap<int, int> *rowMoved = new QMap<int, int>();
         for(QList<QTableWidgetSelectionRange>::iterator selectionRange = range.begin();
             selectionRange != range.end(); selectionRange++) {
-            qInfo() << selectionRange->topRow();
-            qInfo() << selectionRange->bottomRow();
             for(int i = selectionRange->topRow(); i<=selectionRange->bottomRow() ; ++i) {
+                if(i == 0) continue;
+                if(rowMoved->contains(i)) continue;
                 SwapTableItem(ui->tableWidget, i, i - 1);
+                rowMoved->insert(i, i);
+                selectAfter->append(ui->tableWidget->model()->index(i-1, 0));
+                selectAfter->append(ui->tableWidget->model()->index(i-1, 1));
+                selectAfter->append(ui->tableWidget->model()->index(i-1, 2));
+                selectAfter->append(ui->tableWidget->model()->index(i-1, 3));
             }
         }
+
         ui->tableWidget->clearSelection();
+        for(QList<QModelIndex>::iterator index = selectAfter->begin();
+            index != selectAfter->end(); index++) {
+            ui->tableWidget->selectionModel()->select(*index, QItemSelectionModel::Select);
+        }
     }
 }
 
@@ -621,16 +644,30 @@ void MainWindow::on_action_A_triggered()    // 아래로 이동
     if(row == ui->tableWidget->rowCount() - 1) return;
 
     if(ui->tabWidget->currentIndex() == 0) {
+
+        QList<QModelIndex> *selectAfter = new QList<QModelIndex>();
         QList<QTableWidgetSelectionRange> range = ui->tableWidget->selectedRanges();
+        QMap<int, int> *rowMoved = new QMap<int, int>();
         for(QList<QTableWidgetSelectionRange>::iterator selectionRange = range.begin();
             selectionRange != range.end(); selectionRange++) {
             qInfo() << selectionRange->topRow();
             qInfo() << selectionRange->bottomRow();
             for(int i = selectionRange->topRow(); i<=selectionRange->bottomRow() ; ++i) {
+                if(i == ui->tableWidget->rowCount()) continue;
+                if(rowMoved->contains(i)) continue;
                 SwapTableItem(ui->tableWidget, i, i + 1);
+                rowMoved->insert(i, i);
+                selectAfter->append(ui->tableWidget->model()->index(i+1, 0));
+                selectAfter->append(ui->tableWidget->model()->index(i+1, 1));
+                selectAfter->append(ui->tableWidget->model()->index(i+1, 2));
+                selectAfter->append(ui->tableWidget->model()->index(i+1, 3));
             }
         }
         ui->tableWidget->clearSelection();
+        for(QList<QModelIndex>::iterator index = selectAfter->begin();
+            index != selectAfter->end(); index++) {
+            ui->tableWidget->selectionModel()->select(*index, QItemSelectionModel::Select);
+        }
     }
 }
 
