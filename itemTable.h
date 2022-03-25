@@ -2,6 +2,7 @@
 #define ITEMTABLE_H
 
 #include <QTableWidget>
+#include "cellitemchkbox.h"
 
 class ItemTable : public QTableWidget
 {

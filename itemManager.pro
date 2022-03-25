@@ -10,6 +10,7 @@ CONFIG += c++11
 
 SOURCES += \
     ItemTable.cpp \
+    cellitemchkbox.cpp \
     lineedit.cpp \
     main.cpp \
     mainwindow.cpp \
@@ -18,6 +19,7 @@ SOURCES += \
 
 HEADERS += \
     ItemTable.h \
+    cellitemchkbox.h \
     lineedit.h \
     mainwindow.h \
     matchtable.h \
@@ -35,3 +37,5 @@ else: unix:!android: target.path = /opt/$${TARGET}/bin
 
 RESOURCES += \
     qtresource.qrc
+
+RC_ICONS = money_512.ico

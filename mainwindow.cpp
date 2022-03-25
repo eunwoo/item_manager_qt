@@ -10,7 +10,9 @@
 #include <QFileDialog>
 #include <QStandardPaths>
 #include <QTableWidgetSelectionRange>
+#include <QCheckBox>
 #include "newitemdialog.h"
+#include "cellitemchkbox.h"
 
 MainWindow::MainWindow(QWidget *parent)
     : QMainWindow(parent)
@@ -18,14 +20,15 @@ MainWindow::MainWindow(QWidget *parent)
 {
     ui->setupUi(this);
 
-    ui->tableWidget->setColumnCount(3);
+    ui->tableWidget->setColumnCount(4);
     QStringList tableHeader;
-    tableHeader << "품 명" << "가 격" << "재 고";
+    tableHeader << "품 명" << "가 격" << "재 고" << "활성화";
     ui->tableWidget->setHorizontalHeaderLabels(tableHeader);
     ui->tableWidget->setRowCount(1000);
     ui->tableWidget->setColumnWidth(0, 260);
     ui->tableWidget->setColumnWidth(1, 80);
     ui->tableWidget->setColumnWidth(2, 80);
+    ui->tableWidget->setColumnWidth(3, 60);
     connect(ui->lineEdit_2, SIGNAL(FindValueChanged(QString)), this, SLOT(FindValueChanged(QString)));
 
     ui->matchTableWidget->setColumnCount(3);
@@ -184,10 +187,13 @@ void MainWindow::exportToExcel(QString filename, bool is_only_editable, int expo
     row++;
     for(int i = 0; i < ui->tableWidget->rowCount(); ++i) {
         if(ui->tableWidget->item(i, 0) == nullptr) break;
+        // 행이 비어있으면 더이상 아이템이 없다고 간주
         if(QString::compare(ui->tableWidget->item(i, 0)->text(), "", Qt::CaseInsensitive) == 0) {
             break;
         }
-        if(!is_only_editable || (ui->tableWidget->item(i, 0)->flags() & Qt::ItemIsEditable)) {
+        CellItemChkBox *chk = (CellItemChkBox *)ui->tableWidget->cellWidget(i, 3);
+        bool isActivated = chk->GetCheck() == Qt::Checked;
+        if(!is_only_editable || isActivated) {
             QAxObject *range = sheet->querySubObject("Cells(int,int)", row, 1);
             range = range->querySubObject("Font");
             range->setProperty("Size", 10);
@@ -283,10 +289,13 @@ void MainWindow::exportToTxt(QString filename, bool is_only_editable, int export
     QString strOut;
     for(int i = 0; i < ui->tableWidget->rowCount(); ++i) {
         if(ui->tableWidget->item(i, 0) == nullptr) break;
+        // 행이 비어있으면 더이상 아이템이 없다고 간주
         if(QString::compare(ui->tableWidget->item(i, 0)->text(), "", Qt::CaseInsensitive) == 0) {
             break;
         }
-        if(!is_only_editable || (ui->tableWidget->item(i, 0)->flags() & Qt::ItemIsEditable)) {
+        CellItemChkBox *chk = (CellItemChkBox *)ui->tableWidget->cellWidget(i, 3);
+        bool isActivated = chk->GetCheck() == Qt::Checked;
+        if(!is_only_editable || isActivated) {
             QString strCell1;
             if(QString::compare(ui->tableWidget->item(i, 0)->text(), "@@") == 0) {
                 out << "\n";
@@ -296,7 +305,6 @@ void MainWindow::exportToTxt(QString filename, bool is_only_editable, int export
                 strCell1.sprintf("%s", ui->tableWidget->item(i, 0)->text().toUtf8().constData());
                 out << strCell1;
             }
-            out << " - ";
             // 가격 출력
             if(QString::compare(ui->tableWidget->item(i,1)->text(), "") == 0) {
                 strCell1.sprintf("%s", "");
@@ -315,6 +323,7 @@ void MainWindow::exportToTxt(QString filename, bool is_only_editable, int export
                     strList << " 또는 " << strEquivItem;
                 }
                 strCell1.sprintf("%s",strList.join("").toUtf8().constData());
+                out << " - ";
                 out << strCell1;
             }
             // 재고 출력
@@ -377,6 +386,7 @@ void MainWindow::keyPressEvent(QKeyEvent *event)
         int row = ui->tableWidget->currentRow();
         if(row == -1) return;
         ui->tableWidget->removeRow(row);
+        ui->tableWidget->selectRow(row);
     }
     else QMainWindow::keyPressEvent(event);
 }
@@ -405,6 +415,16 @@ bool MainWindow::LoadData()
     foreach(const QJsonValue & val, items.toArray()){
         QJsonArray cellValue = val.toArray();
         ui->tableWidget->AddItem(cellValue[0].toString(), cellValue[1].toString(), cellValue[2].toString(), row);
+        if(cellValue.size() > 3) {
+            CellItemChkBox *cell_widget = new CellItemChkBox();
+            if(QString::compare(cellValue[3].toString(), "true") == 0) {
+                cell_widget->SetCheck(Qt::Checked);
+            }
+            else {
+                cell_widget->SetCheck(Qt::Unchecked);
+            }
+            ui->tableWidget->setCellWidget(row, 3, cell_widget);
+        }
         row++;
     }
 
@@ -433,6 +453,8 @@ bool MainWindow::SaveData()
         item.push_back(ui->tableWidget->item(i, 0)->text());
         item.push_back(ui->tableWidget->item(i, 1)->text());
         item.push_back(ui->tableWidget->item(i, 2)->text());
+        CellItemChkBox *chk = (CellItemChkBox *)ui->tableWidget->cellWidget(i, 3);
+        item.push_back(chk->GetCheck()?"true":"false");
         items.push_back(item);
     }
     root["items"] = items;
@@ -466,13 +488,14 @@ bool MainWindow::SaveData()
 }
 
 
-void MainWindow::on_action_triggered()
+void MainWindow::on_action_triggered()  // 새로만들기
 {
     qInfo() << "MainWindow::on_action_triggered";
     NewItemDialog *dialog = new NewItemDialog();
     Ui_NewItemDialog uiDialog;
     uiDialog.setupUi(dialog);
 //    dialog->layout()->setSizeConstraint(QLayout::SetFixedSize);
+    dialog->setWindowTitle("새로만들기");
     dialog->setModal(true);
     if(dialog->exec() == QDialog::Accepted) {
         qInfo() << "accepted";
@@ -518,9 +541,16 @@ void MainWindow::TableToggleItemEditAttribute(QTableWidgetItem *item)
 }
 void MainWindow::DisableTableRow(QTableWidget *tablewidget, int row)
 {
-    TableToggleItemEditAttribute(tablewidget->item(row, 0));
-    TableToggleItemEditAttribute(tablewidget->item(row, 1));
-    TableToggleItemEditAttribute(tablewidget->item(row, 2));
+//    TableToggleItemEditAttribute(tablewidget->item(row, 0));
+//    TableToggleItemEditAttribute(tablewidget->item(row, 1));
+//    TableToggleItemEditAttribute(tablewidget->item(row, 2));
+    CellItemChkBox *chk = (CellItemChkBox *)tablewidget->cellWidget(row, 3);
+    if(chk->GetCheck() == Qt::Checked) {
+        chk->SetCheck(Qt::Unchecked);
+    }
+    else {
+        chk->SetCheck(Qt::Checked);
+    }
 }
 
 void MainWindow::on_action_E_triggered()    // 활성화 변경
@@ -569,9 +599,19 @@ void MainWindow::on_action_Q_triggered()    // 위로 이동
 {
     int row = ui->tableWidget->currentRow();
     if(row == 0) return;
-    SwapTableItem(ui->tableWidget, row, row - 1);
-    ui->tableWidget->clearSelection();
-    ui->tableWidget->selectRow(row - 1);
+
+    if(ui->tabWidget->currentIndex() == 0) {
+        QList<QTableWidgetSelectionRange> range = ui->tableWidget->selectedRanges();
+        for(QList<QTableWidgetSelectionRange>::iterator selectionRange = range.begin();
+            selectionRange != range.end(); selectionRange++) {
+            qInfo() << selectionRange->topRow();
+            qInfo() << selectionRange->bottomRow();
+            for(int i = selectionRange->topRow(); i<=selectionRange->bottomRow() ; ++i) {
+                SwapTableItem(ui->tableWidget, i, i - 1);
+            }
+        }
+        ui->tableWidget->clearSelection();
+    }
 }
 
 
@@ -579,9 +619,19 @@ void MainWindow::on_action_A_triggered()    // 아래로 이동
 {
     int row = ui->tableWidget->currentRow();
     if(row == ui->tableWidget->rowCount() - 1) return;
-    SwapTableItem(ui->tableWidget, row, row + 1);
-    ui->tableWidget->clearSelection();
-    ui->tableWidget->selectRow(row + 1);
+
+    if(ui->tabWidget->currentIndex() == 0) {
+        QList<QTableWidgetSelectionRange> range = ui->tableWidget->selectedRanges();
+        for(QList<QTableWidgetSelectionRange>::iterator selectionRange = range.begin();
+            selectionRange != range.end(); selectionRange++) {
+            qInfo() << selectionRange->topRow();
+            qInfo() << selectionRange->bottomRow();
+            for(int i = selectionRange->topRow(); i<=selectionRange->bottomRow() ; ++i) {
+                SwapTableItem(ui->tableWidget, i, i + 1);
+            }
+        }
+        ui->tableWidget->clearSelection();
+    }
 }
 
 

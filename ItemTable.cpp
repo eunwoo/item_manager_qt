@@ -18,8 +18,10 @@ void ItemTable::AddItem(QString name, QString price, QString stock, int row)
     setItem(row, 0, new QTableWidgetItem(name));
     setItem(row, 1, new QTableWidgetItem(price));
     setItem(row, 2, new QTableWidgetItem(stock));
+    CellItemChkBox *cell_widget = new CellItemChkBox();
+    cell_widget->SetCheck(Qt::Checked);
+    setCellWidget(row, 3, cell_widget);
 }
-
 
 void ItemTable::keyPressEvent(QKeyEvent *event)
 {
