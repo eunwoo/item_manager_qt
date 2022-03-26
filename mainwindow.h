@@ -5,7 +5,7 @@
 #include <QJsonObject>
 #include <QTableWidget>
 
-#define APP_VERSION "Ver. 16.0"
+#define APP_VERSION "Ver. 17.0"
 
 QT_BEGIN_NAMESPACE
 namespace Ui { class MainWindow; }
@@ -17,6 +17,7 @@ class MainWindow : public QMainWindow
 
 public:
     QJsonObject jsonObj;
+    QMap<int, int> *rowSelected;
 
     MainWindow(QWidget *parent = nullptr);
     ~MainWindow();

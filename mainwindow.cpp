@@ -51,12 +51,14 @@ MainWindow::MainWindow(QWidget *parent)
     setWindowIcon(QIcon("up.png"));
 
     LoadData();
+    rowSelected = new QMap<int, int>();
 }
 
 MainWindow::~MainWindow()
 {
     SaveData();
     delete ui;
+    delete rowSelected;
 }
 
 void MainWindow::ClearTable(QTableWidget *table) {
@@ -101,7 +103,7 @@ void MainWindow::on_pushButton_clicked()    // 불러오기
         auto cCell4 = sheet->querySubObject("Cells(int,int)", r + 1, 4);
         QVariant data4 = cCell4->dynamicCall("Value()");
         CellItemChkBox *cell_widget = new CellItemChkBox();
-        if(QString::compare(data4.toString(), "비공란") == 0) {
+        if(data4.toString().length() > 0) {
             cell_widget->SetCheck(Qt::Checked);
         }
         else {
@@ -216,7 +218,7 @@ void MainWindow::exportToExcel(QString filename, bool is_only_editable, int expo
             }
             sheet->querySubObject("Cells(Int,Int)",row,3)->setProperty("Value",ui->tableWidget->item(i, 2)->text());
 
-            sheet->querySubObject("Cells(Int,Int)",row,4)->setProperty("Value",isActivated?"비공란":"공란");
+            sheet->querySubObject("Cells(Int,Int)",row,4)->setProperty("Value",isActivated?"O":"");
 
             row++;
         }
@@ -559,14 +561,19 @@ void MainWindow::on_action_E_triggered()    // 활성화 변경
 {
     if(ui->tabWidget->currentIndex() == 0) {
         QList<QTableWidgetSelectionRange> range = ui->tableWidget->selectedRanges();
+        qInfo() << "활성화변경 " << range.length();
+        rowSelected->clear();
         for(QList<QTableWidgetSelectionRange>::iterator selectionRange = range.begin();
             selectionRange != range.end(); selectionRange++) {
             qInfo() << selectionRange->topRow();
             qInfo() << selectionRange->bottomRow();
             for(int i = selectionRange->topRow(); i<=selectionRange->bottomRow() ; ++i) {
+                if(rowSelected->contains(i)) continue;
                 DisableTableRow(ui->tableWidget, i);
+                rowSelected->insert(i, i);
             }
         }
+
     }
 //    else {
 //        QList<QTableWidgetSelectionRange> range = ui->matchTableWidget->selectedRanges();
@@ -614,14 +621,14 @@ void MainWindow::on_action_Q_triggered()    // 위로 이동
 
         QList<QModelIndex> *selectAfter = new QList<QModelIndex>();
         QList<QTableWidgetSelectionRange> range = ui->tableWidget->selectedRanges();
-        QMap<int, int> *rowMoved = new QMap<int, int>();
+        rowSelected->clear();
         for(QList<QTableWidgetSelectionRange>::iterator selectionRange = range.begin();
             selectionRange != range.end(); selectionRange++) {
             for(int i = selectionRange->topRow(); i<=selectionRange->bottomRow() ; ++i) {
                 if(i == 0) continue;
-                if(rowMoved->contains(i)) continue;
+                if(rowSelected->contains(i)) continue;
                 SwapTableItem(ui->tableWidget, i, i - 1);
-                rowMoved->insert(i, i);
+                rowSelected->insert(i, i);
                 selectAfter->append(ui->tableWidget->model()->index(i-1, 0));
                 selectAfter->append(ui->tableWidget->model()->index(i-1, 1));
                 selectAfter->append(ui->tableWidget->model()->index(i-1, 2));
@@ -647,16 +654,16 @@ void MainWindow::on_action_A_triggered()    // 아래로 이동
 
         QList<QModelIndex> *selectAfter = new QList<QModelIndex>();
         QList<QTableWidgetSelectionRange> range = ui->tableWidget->selectedRanges();
-        QMap<int, int> *rowMoved = new QMap<int, int>();
+        rowSelected->clear();
         for(QList<QTableWidgetSelectionRange>::iterator selectionRange = range.begin();
             selectionRange != range.end(); selectionRange++) {
             qInfo() << selectionRange->topRow();
             qInfo() << selectionRange->bottomRow();
             for(int i = selectionRange->topRow(); i<=selectionRange->bottomRow() ; ++i) {
                 if(i == ui->tableWidget->rowCount()) continue;
-                if(rowMoved->contains(i)) continue;
+                if(rowSelected->contains(i)) continue;
                 SwapTableItem(ui->tableWidget, i, i + 1);
-                rowMoved->insert(i, i);
+                rowSelected->insert(i, i);
                 selectAfter->append(ui->tableWidget->model()->index(i+1, 0));
                 selectAfter->append(ui->tableWidget->model()->index(i+1, 1));
                 selectAfter->append(ui->tableWidget->model()->index(i+1, 2));
