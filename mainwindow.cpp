@@ -545,8 +545,9 @@ void MainWindow::on_action_U_triggered()    // 복제하기
     int row = ui->tableWidget->currentRow();
     if(row == -1) row = 0;
     uiDialog.setupUi(dialog);
+    // 이름과 가격은 있고 재고는 비어있게
+    uiDialog.lineEdit->setText(ui->tableWidget->item(row, 0)->text());
     uiDialog.lineEdit_2->setText(ui->tableWidget->item(row, 1)->text());
-    uiDialog.lineEdit_3->setText(ui->tableWidget->item(row, 2)->text());
 //    dialog->layout()->setSizeConstraint(QLayout::SetFixedSize);
     dialog->setWindowTitle("복제하기");
     dialog->setModal(true);
