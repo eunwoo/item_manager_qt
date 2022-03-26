@@ -27,6 +27,7 @@ public:
     void DisableTableRow(QTableWidget *tablewidget, int row);
     void TableToggleItemEditAttribute(QTableWidgetItem *item);
     bool SwapTableItem(QTableWidget *tablewidget, int rowSrc, int rowDest);
+    bool CheckSwappable(QTableWidget *tablewidget, int rowSrc, int rowDest);
     void exportToExcel(QString filename, bool is_only_editable, int export_option);
     void exportToTxt(QString filename, bool is_only_editable, int export_option);
     QString GetEquivalentItem(float price, int option);
