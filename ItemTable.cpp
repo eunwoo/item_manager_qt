@@ -9,9 +9,9 @@ ItemTable::ItemTable(QWidget *parent) : QTableWidget(parent)
 void ItemTable::InsertItem(QString name, QString price, QString stock)
 {
     int currentRowNo = currentRow();
-    if(currentRowNo == -1) currentRowNo = 0;
-    insertRow(currentRowNo);
-    AddItem(name, price, stock, currentRowNo);
+    if(currentRowNo == -1) currentRowNo = 0;    // 선택된 셀이 없을 경우 처음에 삽입
+    insertRow(currentRowNo + 1);
+    AddItem(name, price, stock, currentRowNo + 1);
 }
 void ItemTable::AddItem(QString name, QString price, QString stock, int row)
 {

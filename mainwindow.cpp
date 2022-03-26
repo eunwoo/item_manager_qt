@@ -11,6 +11,7 @@
 #include <QStandardPaths>
 #include <QTableWidgetSelectionRange>
 #include <QCheckBox>
+#include <QMessageBox>
 #include "newitemdialog.h"
 #include "cellitemchkbox.h"
 
@@ -380,7 +381,10 @@ void MainWindow::changeEvent(QEvent *event)
 {
     qInfo() << event;
 }
-
+struct str_num_compare {
+  bool operator() (const QString& lhs, const QString& rhs) const
+  {return lhs.toInt()<rhs.toInt();}
+};
 void MainWindow::keyPressEvent(QKeyEvent *event)
 {
     qInfo() << "MainWindow::onKeyPressEvent";
@@ -389,8 +393,31 @@ void MainWindow::keyPressEvent(QKeyEvent *event)
     else if(event->key() == Qt::Key_Delete) {
         int row = ui->tableWidget->currentRow();
         if(row == -1) return;
-        ui->tableWidget->removeRow(row);
-        ui->tableWidget->selectRow(row);
+        QMessageBox msgBox;
+        msgBox.setStandardButtons(QMessageBox::Ok | QMessageBox::Cancel);
+        msgBox.setText("지우시겠습니까?");
+        if(msgBox.exec() == QMessageBox::Ok) {
+            QList<QTableWidgetSelectionRange> range = ui->tableWidget->selectedRanges();
+            qInfo() << "다중삭제 " << range.length();
+            rowSelected->clear();
+            for(QList<QTableWidgetSelectionRange>::iterator selectionRange = range.begin();
+                selectionRange != range.end(); selectionRange++) {
+                qInfo() << selectionRange->topRow();
+                qInfo() << selectionRange->bottomRow();
+                for(int i = selectionRange->bottomRow(); i>=selectionRange->topRow() ; --i) {
+                    if(rowSelected->contains(i)) continue;
+                    rowSelected->insert(i, i);
+                }
+            }
+
+            qDebug() << rowSelected->keys();
+            QList<int> rows = rowSelected->keys();
+            for (QList<int>::iterator pos = rows.end() - 1; pos>=rows.begin(); pos--) {
+                qDebug() << QString::number(*pos);
+                ui->tableWidget->removeRow(*pos);
+            }
+
+        }
     }
     else QMainWindow::keyPressEvent(event);
 }
@@ -588,8 +615,12 @@ void MainWindow::on_action_E_triggered()    // 활성화 변경
 //    }
 }
 
-void MainWindow::SwapTableItem(QTableWidget *tablewidget, int rowSrc, int rowDest)
+bool MainWindow::SwapTableItem(QTableWidget *tablewidget, int rowSrc, int rowDest)
 {
+    CellItemChkBox *chkWidgetSrc = (CellItemChkBox *)tablewidget->cellWidget(rowSrc, 3);
+    CellItemChkBox *chkWidgetDst = (CellItemChkBox *)tablewidget->cellWidget(rowDest, 3);
+    if(chkWidgetSrc == nullptr || chkWidgetDst == nullptr) return false;
+
     QTableWidgetItem *itemSrc = tablewidget->takeItem(rowSrc, 0);
     QTableWidgetItem *itemDst = tablewidget->takeItem(rowDest, 0);
     tablewidget->setItem(rowSrc, 0, itemDst);
@@ -604,12 +635,11 @@ void MainWindow::SwapTableItem(QTableWidget *tablewidget, int rowSrc, int rowDes
     tablewidget->setItem(rowDest, 2, itemSrc);
 
     // 활성화 체크 상태 swap
-    CellItemChkBox *chkWidgetSrc = (CellItemChkBox *)tablewidget->cellWidget(rowSrc, 3);
-    CellItemChkBox *chkWidgetDst = (CellItemChkBox *)tablewidget->cellWidget(rowDest, 3);
     Qt::CheckState chkSrc = chkWidgetSrc->GetCheck();
     Qt::CheckState chkDst = chkWidgetDst->GetCheck();
     chkWidgetSrc->SetCheck(chkDst);
     chkWidgetDst->SetCheck(chkSrc);
+    return true;
 }
 
 void MainWindow::on_action_Q_triggered()    // 위로 이동
@@ -659,15 +689,17 @@ void MainWindow::on_action_A_triggered()    // 아래로 이동
             selectionRange != range.end(); selectionRange++) {
             qInfo() << selectionRange->topRow();
             qInfo() << selectionRange->bottomRow();
+
             for(int i = selectionRange->topRow(); i<=selectionRange->bottomRow() ; ++i) {
-                if(i == ui->tableWidget->rowCount()) continue;
+                if(i > ui->tableWidget->rowCount() - 1) continue;
                 if(rowSelected->contains(i)) continue;
-                SwapTableItem(ui->tableWidget, i, i + 1);
+                if(SwapTableItem(ui->tableWidget, i, i + 1) == true) {
+                    selectAfter->append(ui->tableWidget->model()->index(i+1, 0));
+                    selectAfter->append(ui->tableWidget->model()->index(i+1, 1));
+                    selectAfter->append(ui->tableWidget->model()->index(i+1, 2));
+                    selectAfter->append(ui->tableWidget->model()->index(i+1, 3));
+                }
                 rowSelected->insert(i, i);
-                selectAfter->append(ui->tableWidget->model()->index(i+1, 0));
-                selectAfter->append(ui->tableWidget->model()->index(i+1, 1));
-                selectAfter->append(ui->tableWidget->model()->index(i+1, 2));
-                selectAfter->append(ui->tableWidget->model()->index(i+1, 3));
             }
         }
         ui->tableWidget->clearSelection();
