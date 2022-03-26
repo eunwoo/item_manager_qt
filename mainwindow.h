@@ -5,7 +5,7 @@
 #include <QJsonObject>
 #include <QTableWidget>
 
-#define APP_VERSION "Ver. 17.0"
+#define APP_VERSION "Ver. 18.0"
 
 QT_BEGIN_NAMESPACE
 namespace Ui { class MainWindow; }
