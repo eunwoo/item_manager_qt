@@ -350,6 +350,78 @@ void MainWindow::exportToTxt(QString filename, bool is_only_editable, int export
 
 }
 
+
+void MainWindow::exportToHtml(QString filename, bool is_only_editable, int export_option)
+{
+    QStringList splitFilename = filename.split(".");
+    splitFilename.removeAt(splitFilename.length() - 1);
+    splitFilename << ".txt";
+    QFile file(splitFilename.join(""));
+    if(!file.open(QFile::WriteOnly | QFile::Text)) {
+        qInfo() << "error in opening file";
+        return;
+    }
+    QTextStream out(&file);
+    out.setCodec("UTF-8");
+    QString strOut;
+    for(int i = 0; i < ui->tableWidget->rowCount(); ++i) {
+        if(ui->tableWidget->item(i, 0) == nullptr) break;
+        // 행이 비어있으면 더이상 아이템이 없다고 간주
+        if(QString::compare(ui->tableWidget->item(i, 0)->text(), "", Qt::CaseInsensitive) == 0) {
+            break;
+        }
+        CellItemChkBox *chk = (CellItemChkBox *)ui->tableWidget->cellWidget(i, 3);
+        bool isActivated = chk->GetCheck() == Qt::Checked;
+        if(!is_only_editable || isActivated) {
+            QString strCell1;
+            if(QString::compare(ui->tableWidget->item(i, 0)->text(), "@@") == 0) {
+                out << "\n";
+                continue;
+            }
+            else {
+                strCell1.sprintf("%s", ui->tableWidget->item(i, 0)->text().toUtf8().constData());
+                out << strCell1;
+            }
+            // 가격 출력
+            if(QString::compare(ui->tableWidget->item(i,1)->text(), "") == 0) {
+                strCell1.sprintf("%s", "");
+                out << strCell1;
+                out << "\n";
+                continue;
+            }
+            else {
+                float price_multiplied = ui->tableWidget->item(i,1)->text().toFloat() * ui->lineEdit->text().toFloat();
+                QStringList strList;
+                strList << QString::number((int)price_multiplied);
+                qInfo() << QString::number((int)price_multiplied);
+                QString strEquivItem = GetEquivalentItem(price_multiplied, export_option);
+                qInfo() << strEquivItem;
+                if(export_option > 0 && QString::compare(strEquivItem, "") != 0) {
+                    strList << " 또는 " << strEquivItem;
+                }
+                strCell1.sprintf("%s",strList.join("").toUtf8().constData());
+                out << " - ";
+                out << strCell1;
+            }
+            // 재고 출력
+            strOut.sprintf("%s", QString::fromUtf8(" (재고: ").toUtf8().constData());
+            out << strOut;
+            if(QString::compare(ui->tableWidget->item(i,2)->text(), "") == 0) {
+                out << "0";
+            }
+            else {
+                strCell1.sprintf("%s", ui->tableWidget->item(i, 2)->text().toUtf8().constData());
+                out << strCell1;
+            }
+            strOut.sprintf("%s", QString::fromUtf8("개)\n").toUtf8().constData());
+            out << strOut;
+        }
+    }
+    file.flush();
+    file.close();
+
+}
+
 void MainWindow::on_pushButton_2_clicked()  // 내보내기(모두)
 {
     QString filename = QFileDialog::getSaveFileName(this, tr("Save Excel File"), ".",

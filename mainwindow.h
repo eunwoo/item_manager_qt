@@ -5,7 +5,7 @@
 #include <QJsonObject>
 #include <QTableWidget>
 
-#define APP_VERSION "Ver. 20.0"
+#define APP_VERSION "Ver. 21.0"
 
 QT_BEGIN_NAMESPACE
 namespace Ui { class MainWindow; }
@@ -30,6 +30,7 @@ public:
     bool CheckSwappable(QTableWidget *tablewidget, int rowSrc, int rowDest);
     void exportToExcel(QString filename, bool is_only_editable, int export_option);
     void exportToTxt(QString filename, bool is_only_editable, int export_option);
+    void exportToHtml(QString filename, bool is_only_editable, int export_option);
     QString GetEquivalentItem(float price, int option);
 
 private slots:
