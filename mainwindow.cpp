@@ -349,13 +349,30 @@ void MainWindow::exportToTxt(QString filename, bool is_only_editable, int export
     file.close();
 
 }
+/*
+ * https://stackoverflow.com/questions/18676800/how-to-parse-html-with-c-qt
+ * https://doc.qt.io/archives/qt-5.5/qtwebkitexamples-webkitwidgets-domtraversal-example.html
+*/
+class TagElement {
+public:
+    int start_open;
+    int start_close;
+    int end_open;
+    int end_close;
+    QString type;
+};
 
-
+QString MainWindow::convertToHtml(QString strInput)
+{
+    int start_open = strInput.indexOf("<");
+    int start_close = strInput.indexOf(">", start_open);
+    QString type = strInput.mid(start_open, start_close - start_open);
+}
 void MainWindow::exportToHtml(QString filename, bool is_only_editable, int export_option)
 {
     QStringList splitFilename = filename.split(".");
     splitFilename.removeAt(splitFilename.length() - 1);
-    splitFilename << ".txt";
+    splitFilename << ".html";
     QFile file(splitFilename.join(""));
     if(!file.open(QFile::WriteOnly | QFile::Text)) {
         qInfo() << "error in opening file";

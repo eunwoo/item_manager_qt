@@ -32,6 +32,7 @@ public:
     void exportToTxt(QString filename, bool is_only_editable, int export_option);
     void exportToHtml(QString filename, bool is_only_editable, int export_option);
     QString GetEquivalentItem(float price, int option);
+    QString convertToHtml(QString strInput);
 
 private slots:
     virtual void changeEvent(QEvent *event);
