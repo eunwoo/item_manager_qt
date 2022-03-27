@@ -87,7 +87,7 @@ void MainWindow::on_pushButton_clicked()    // 불러오기
     ClearTable(ui->matchTableWidget);
     //worksheets count
     auto sheet = sheets->querySubObject("Item(int)", 1);
-    for (int r = 1; r <= 1000; ++r) {
+    for (int r = 1; true ; ++r) {
         auto cCell1 = sheet->querySubObject("Cells(int,int)", r + 1, 1);
         auto cCell2 = sheet->querySubObject("Cells(int,int)", r + 1, 2);
         auto cCell3 = sheet->querySubObject("Cells(int,int)", r + 1, 3);
@@ -114,7 +114,7 @@ void MainWindow::on_pushButton_clicked()    // 불러오기
     }
 
     sheet = sheets->querySubObject("Item(int)", 2);
-    for (int r = 1; r <= 1000; ++r) {
+    for (int r = 1; r <= true; ++r) {
         auto cCell1 = sheet->querySubObject("Cells(int,int)", r + 1, 1);
         auto cCell2 = sheet->querySubObject("Cells(int,int)", r + 1, 2);
         auto cCell3 = sheet->querySubObject("Cells(int,int)", r + 1, 3);

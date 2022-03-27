@@ -15,6 +15,7 @@ void ItemTable::InsertItem(QString name, QString price, QString stock)
 }
 void ItemTable::AddItem(QString name, QString price, QString stock, int row)
 {
+    if(row > rowCount() - 1) insertRow(row);
     setItem(row, 0, new QTableWidgetItem(name));
     setItem(row, 1, new QTableWidgetItem(price));
     setItem(row, 2, new QTableWidgetItem(stock));
