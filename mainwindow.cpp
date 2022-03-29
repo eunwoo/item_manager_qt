@@ -533,7 +533,7 @@ void MainWindow::exportToHtml(QString filename, bool is_only_editable, int expor
         if(!is_only_editable || isActivated) {
             QString strCell1;
             if(QString::compare(ui->tableWidget->item(i, 0)->text(), "@@") == 0) {
-                out << "<br>";
+                out << "<br>\n";
                 continue;
             }
             else {
@@ -544,7 +544,7 @@ void MainWindow::exportToHtml(QString filename, bool is_only_editable, int expor
             if(QString::compare(ui->tableWidget->item(i,1)->text(), "") == 0) {
                 strCell1.sprintf("%s", "");
                 out << strCell1;
-                out << "<br>";
+                out << "<br>\n";
                 continue;
             }
             else {
@@ -573,7 +573,7 @@ void MainWindow::exportToHtml(QString filename, bool is_only_editable, int expor
             }
             strOut.sprintf("%s", QString::fromUtf8("개)").toUtf8().constData());
             out << strOut;
-            out << "<br>";
+            out << "<br>\n";
         }
     }
     file.flush();
