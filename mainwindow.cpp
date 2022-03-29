@@ -355,18 +355,161 @@ void MainWindow::exportToTxt(QString filename, bool is_only_editable, int export
 */
 class TagElement {
 public:
-    int start_open;
-    int start_close;
-    int end_open;
-    int end_close;
-    QString type;
+    TagElement(int _start);
+    int start;
+    int end;
+    QString value;
+    QString tag;
+    QString close_tag;
 };
+TagElement::TagElement(int _start) {
+    start = _start;
+    end = -1;
+    value = "";
+}
+enum error_code {
+    NO_ERROR = 0,
+    OPEN_TAG_NOT_FOUND = -1,
+};
+class TreeItem {
+public:
+    TreeItem(TreeItem *_parent);
+    TreeItem *parent;
+    TagElement *item;
+    QVector<TreeItem*> children;
+};
+TreeItem::TreeItem(TreeItem *_parent) {
+    parent = _parent;
+}
+class Parser {
+public:
+    Parser(QString _str);
+    ~Parser();
+    QString strInput;
+    void Parse();
+    bool GetNextTag(int pos);
+    void ReleaseMemory(TreeItem *item);
+    QString toHtml();
+    QString TraversalDepthFirst(TreeItem *item);
+
+    int pos;
+    int parsing_index = 0;
+    int tag_open_cnt = 0;
+    int error = NO_ERROR;
+
+    TreeItem *root;
+    TreeItem *current;
+};
+Parser::Parser(QString _str)
+{
+    strInput = _str;
+    pos = 0;
+}
+Parser::~Parser()
+{
+    ReleaseMemory(root);
+}
+void Parser::ReleaseMemory(TreeItem *item) {
+    for(QVector<TreeItem*>::iterator itr = item->children.begin(); itr<item->children.end(); itr++) {
+        ReleaseMemory((TreeItem*)(*itr));
+    }
+    delete item;
+}
+void Parser::Parse()
+{
+    root = new TreeItem(nullptr);
+    current = root;
+    current->item = new TagElement(0);
+    current->item->end = strInput.length();
+    current->item->value = strInput.mid(current->item->start, current->item->end);
+
+    while(GetNextTag(pos)) {
+
+    }
+}
+bool Parser::GetNextTag(int pos) {
+    int next;
+
+    if((next = strInput.indexOf("<", pos)) == -1) {
+        return false;
+    }
+    else {
+        if(strInput.at(next+1) == '/') {
+            current->item->end = strInput.indexOf(">", next+1) + 1;
+            current->item->value = strInput.mid(current->item->start, current->item->end - current->item->start);
+            current->item->tag = strInput.mid(current->item->start, strInput.indexOf(">", current->item->start) - current->item->start + 1);
+            current = current->parent;
+            // Search new child
+            return GetNextTag(next+1);
+        }
+        else if(strInput.at(next+1) == 'x') { // close all open tag
+            int pos_close = strInput.indexOf(">", next+1) + 1;
+            QString close_tag;
+            while(current != root) {
+                current->item->end = pos_close;
+                current->item->value = strInput.mid(current->item->start, current->item->end - current->item->start);
+                current->item->tag = strInput.mid(current->item->start, strInput.indexOf(">", current->item->start) - current->item->start);
+                close_tag += strInput.mid(current->item->start, strInput.indexOf(">", current->item->start) - current->item->start + 1).insert(1,"/");
+                if(current->parent == root) current->item->close_tag = close_tag;
+                current = current->parent;
+            }
+            return GetNextTag(next+1);
+        }
+        else {
+            // Make new child
+            TreeItem *child = new TreeItem(current);
+            child->item = new TagElement(next);
+            current->children.push_back(child);
+
+            current = child;
+            // Search new child
+            return GetNextTag(next+1);
+        }
+    }
+    return true;
+}
+QString Parser::toHtml()
+{
+    QString html = TraversalDepthFirst(root);
+    html = html.replace("<xx>","");
+    qInfo() << html;
+    return html;
+}
+QString Parser::TraversalDepthFirst(TreeItem *item)
+{
+    QString result;
+//    qInfo() << item->item->value;
+    int pos = item->item->start;
+    if(item->children.length() == 0) {
+        qInfo() << strInput.mid(pos, item->item->end - pos);
+        result += strInput.mid(pos, item->item->end - pos);
+    }
+    else {
+        for(QVector<TreeItem*>::iterator itr = item->children.begin(); itr<item->children.end(); itr++) {
+            TagElement *e = ((TreeItem*)(*itr))->item;
+            TreeItem *child = (TreeItem*)(*itr);
+            qInfo() << strInput.mid(pos, e->start - pos);
+            result += strInput.mid(pos, e->start - pos);
+            result += TraversalDepthFirst(child);
+            if(e->close_tag != "") {
+                qInfo() << e->close_tag;
+                result += e->close_tag;
+            }
+            pos = e->end;
+        }
+        qInfo() << strInput.mid(pos, item->item->end - pos);
+        result += strInput.mid(pos, item->item->end - pos);
+    }
+    return result;
+}
 
 QString MainWindow::convertToHtml(QString strInput)
 {
-    int start_open = strInput.indexOf("<");
-    int start_close = strInput.indexOf(">", start_open);
-    QString type = strInput.mid(start_open, start_close - start_open);
+    Parser parse(strInput);
+    parse.Parse();
+    parse.toHtml();
+
+    return "";
 }
 void MainWindow::exportToHtml(QString filename, bool is_only_editable, int export_option)
 {
@@ -441,6 +584,13 @@ void MainWindow::exportToHtml(QString filename, bool is_only_editable, int expor
 
 void MainWindow::on_pushButton_2_clicked()  // 내보내기(모두)
 {
+//    QString testStr = "ddd<b>bo<b>l</b>d</b>";
+
+
+//    convertToHtml(testStr);
+    convertToHtml(ui->tableWidget->item(5, 0)->text());
+    return;
+
     QString filename = QFileDialog::getSaveFileName(this, tr("Save Excel File"), ".",
                                                     tr("Excel File (*.xlsx)"));
     if(QString::compare(filename, "", Qt::CaseInsensitive) == 0) {
@@ -594,9 +744,9 @@ bool MainWindow::SaveData()
     root["matching"] = items1;
 
     QByteArray ba = QJsonDocument(root).toJson();
-    QTextStream ts(stdout);
-    ts << "rendered JSON" << endl;
-    ts << ba;
+//    QTextStream ts(stdout);
+//    ts << "rendered JSON" << endl;
+//    ts << ba;
     {
         QFile fout("data.json");
         fout.open(QIODevice::WriteOnly);
