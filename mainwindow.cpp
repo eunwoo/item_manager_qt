@@ -481,23 +481,23 @@ QString Parser::TraversalDepthFirst(TreeItem *item)
 //    qInfo() << item->item->value;
     int pos = item->item->start;
     if(item->children.length() == 0) {
-        qInfo() << strInput.mid(pos, item->item->end - pos);
+//        qInfo() << strInput.mid(pos, item->item->end - pos);
         result += strInput.mid(pos, item->item->end - pos);
     }
     else {
         for(QVector<TreeItem*>::iterator itr = item->children.begin(); itr<item->children.end(); itr++) {
             TagElement *e = ((TreeItem*)(*itr))->item;
             TreeItem *child = (TreeItem*)(*itr);
-            qInfo() << strInput.mid(pos, e->start - pos);
+//            qInfo() << strInput.mid(pos, e->start - pos);
             result += strInput.mid(pos, e->start - pos);
             result += TraversalDepthFirst(child);
             if(e->close_tag != "") {
-                qInfo() << e->close_tag;
+//                qInfo() << e->close_tag;
                 result += e->close_tag;
             }
             pos = e->end;
         }
-        qInfo() << strInput.mid(pos, item->item->end - pos);
+//        qInfo() << strInput.mid(pos, item->item->end - pos);
         result += strInput.mid(pos, item->item->end - pos);
     }
     return result;
@@ -507,9 +507,7 @@ QString MainWindow::convertToHtml(QString strInput)
 {
     Parser parse(strInput);
     parse.Parse();
-    parse.toHtml();
-
-    return "";
+    return parse.toHtml();
 }
 void MainWindow::exportToHtml(QString filename, bool is_only_editable, int export_option)
 {
@@ -535,18 +533,18 @@ void MainWindow::exportToHtml(QString filename, bool is_only_editable, int expor
         if(!is_only_editable || isActivated) {
             QString strCell1;
             if(QString::compare(ui->tableWidget->item(i, 0)->text(), "@@") == 0) {
-                out << "\n";
+                out << "<br>";
                 continue;
             }
             else {
                 strCell1.sprintf("%s", ui->tableWidget->item(i, 0)->text().toUtf8().constData());
-                out << strCell1;
+                out << convertToHtml(strCell1);
             }
             // 가격 출력
             if(QString::compare(ui->tableWidget->item(i,1)->text(), "") == 0) {
                 strCell1.sprintf("%s", "");
                 out << strCell1;
-                out << "\n";
+                out << "<br>";
                 continue;
             }
             else {
@@ -573,8 +571,9 @@ void MainWindow::exportToHtml(QString filename, bool is_only_editable, int expor
                 strCell1.sprintf("%s", ui->tableWidget->item(i, 2)->text().toUtf8().constData());
                 out << strCell1;
             }
-            strOut.sprintf("%s", QString::fromUtf8("개)\n").toUtf8().constData());
+            strOut.sprintf("%s", QString::fromUtf8("개)").toUtf8().constData());
             out << strOut;
+            out << "<br>";
         }
     }
     file.flush();
@@ -585,11 +584,9 @@ void MainWindow::exportToHtml(QString filename, bool is_only_editable, int expor
 void MainWindow::on_pushButton_2_clicked()  // 내보내기(모두)
 {
 //    QString testStr = "ddd<b>bo<b>l</b>d</b>";
-
-
 //    convertToHtml(testStr);
-    convertToHtml(ui->tableWidget->item(5, 0)->text());
-    return;
+//    convertToHtml(ui->tableWidget->item(5, 0)->text());
+//    return;
 
     QString filename = QFileDialog::getSaveFileName(this, tr("Save Excel File"), ".",
                                                     tr("Excel File (*.xlsx)"));
@@ -600,6 +597,7 @@ void MainWindow::on_pushButton_2_clicked()  // 내보내기(모두)
 
     exportToExcel(filename, false, ui->comboBox->currentIndex());
     exportToTxt(filename, false, ui->comboBox->currentIndex());
+    exportToHtml(filename, false, ui->comboBox->currentIndex());
 }
 
 void MainWindow::on_pushButton_3_clicked()  // 내보내기(활성화만)
@@ -613,6 +611,7 @@ void MainWindow::on_pushButton_3_clicked()  // 내보내기(활성화만)
 
     exportToExcel(filename, true, ui->comboBox->currentIndex());
     exportToTxt(filename, true, ui->comboBox->currentIndex());
+    exportToHtml(filename, true, ui->comboBox->currentIndex());
 }
 
 
