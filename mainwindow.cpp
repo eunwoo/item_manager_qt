@@ -2,7 +2,6 @@
 #include "ui_mainwindow.h"
 #include <QAxObject>
 #include <QDebug>
-#include "ItemTable.h"
 #include <QFile>
 #include <QJsonDocument>
 #include <QJsonArray>
@@ -16,6 +15,8 @@
 #include "newitemdialog.h"
 #include "cellitemchkbox.h"
 #include "cellitemspinbox.h"
+#include "ItemTable.h"
+#include "ExportTable.h"
 
 MainWindow::MainWindow(QWidget *parent)
     : QMainWindow(parent)
@@ -44,13 +45,27 @@ MainWindow::MainWindow(QWidget *parent)
     ui->matchTableWidget->setColumnWidth(1, 80);
     ui->matchTableWidget->setColumnWidth(2, 80);
 
+    tableHeader.clear();
+    tableHeader << "부분/검색어" << "txt 파일출력" << "글자크기" << "굵게" << "기울이기" << "밑줄" << "바탕색" << "글자색";
+    ui->exportTableWidget->setColumnCount(tableHeader.length());
+    ui->exportTableWidget->setHorizontalHeaderLabels(tableHeader);
+    ui->exportTableWidget->setRowCount(1000);
+    ui->exportTableWidget->setColumnWidth(0, 160);
+    ui->exportTableWidget->setColumnWidth(1, 300);
+    ui->exportTableWidget->setColumnWidth(2, 80);
+    ui->exportTableWidget->setColumnWidth(3, 80);
+    ui->exportTableWidget->setColumnWidth(4, 80);
+    ui->exportTableWidget->setColumnWidth(5, 80);
+    ui->exportTableWidget->setColumnWidth(6, 80);
+    ui->exportTableWidget->setColumnWidth(7, 80);
+
 
     ui->lineEdit->setText("1.0");
     ui->comboBox->addItem("그대로");
     ui->comboBox->addItem("아이템1");
     ui->comboBox->addItem("아이템2");
 
-    setGeometry(100,100, 800, 800);
+    setGeometry(100,100, 1200, 800);
     setWindowTitle(QString("아이템 관리자 - ") + QString(APP_VERSION));
 //    setWindowIcon(QIcon("up.png"));
 
@@ -745,6 +760,26 @@ bool MainWindow::LoadData()
         ui->matchTableWidget->AddItem(cellValue[0].toString(), cellValue[1].toString(), cellValue[2].toString(), row);
         row++;
     }
+
+
+    items = jsonObj.value("export");
+    qInfo() << items.toArray();
+    row = 0;
+    foreach(const QJsonValue & val, items.toArray()){
+        QJsonArray cellValue = val.toArray();
+        ui->exportTableWidget->AddItem(cellValue[0].toString(), cellValue[1].toString(), cellValue[2].toString(),
+                cellValue[3].toString(), cellValue[4].toString(), cellValue[5].toString(),
+                cellValue[6].toString(), cellValue[7].toString(), row);
+        row++;
+    }
+
+    items = jsonObj.value("row_height");
+    int height = items.toString().toInt();
+    for(int i=0; i<ui->tableWidget->rowCount(); ++i) {
+        ui->tableWidget->setRowHeight(i, height);
+    }
+
+
     return true;
 }
 
@@ -793,6 +828,28 @@ bool MainWindow::SaveData()
         items1.push_back(item);
     }
     root["matching"] = items1;
+
+    QJsonArray items2;
+    for(int i = 0; i < ui->exportTableWidget->rowCount(); ++i) {
+        QJsonArray item;
+        if(ui->exportTableWidget->item(i, 0) == nullptr) break;
+        if(QString::compare(ui->exportTableWidget->item(i, 0)->text(), "", Qt::CaseInsensitive) == 0) {
+            break;
+        }
+        for(int j = 0; j < ui->exportTableWidget->columnCount(); ++j) {
+            QTableWidgetItem *cellitem = ui->exportTableWidget->item(i, j);
+            if(cellitem == nullptr) {
+                item.push_back("");
+            }
+            else {
+                item.push_back(cellitem->text());
+            }
+        }
+        items2.push_back(item);
+    }
+    root["export"] = items2;
+    root["row_height"] = QString::number(ui->tableWidget->rowHeight(0));
+
 
     QByteArray ba = QJsonDocument(root).toJson();
 //    QTextStream ts(stdout);

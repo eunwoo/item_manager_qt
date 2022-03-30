@@ -124,7 +124,7 @@
             <item>
              <layout class="QVBoxLayout" name="verticalLayout_7">
               <item>
-               <widget class="MatchTable" name="matchTableWidget_2"/>
+               <widget class="ExportTable" name="exportTableWidget"/>
               </item>
              </layout>
             </item>
@@ -144,7 +144,7 @@
      <x>0</x>
      <y>0</y>
      <width>779</width>
-     <height>22</height>
+     <height>26</height>
     </rect>
    </property>
    <widget class="QMenu" name="menu_f">
@@ -252,6 +252,11 @@
    <class>MatchTable</class>
    <extends>QTableWidget</extends>
    <header>matchtable.h</header>
+  </customwidget>
+  <customwidget>
+   <class>ExportTable</class>
+   <extends>QTableWidget</extends>
+   <header>exporttable.h</header>
   </customwidget>
  </customwidgets>
  <resources>
