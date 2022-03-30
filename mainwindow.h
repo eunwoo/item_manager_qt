@@ -6,7 +6,7 @@
 #include <QTableWidget>
 #include <QStandardItemModel>
 
-#define APP_VERSION "Ver. 22.0"
+#define APP_VERSION "Ver. 23.0"
 
 QT_BEGIN_NAMESPACE
 namespace Ui { class MainWindow; }
