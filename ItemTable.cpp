@@ -4,6 +4,10 @@
 
 ItemTable::ItemTable(QWidget *parent) : QTableWidget(parent)
 {
+//    setItemDelegate(&delegate);
+}
+
+ItemTable::~ItemTable() {
 }
 
 void ItemTable::InsertItem(QString name, QString price, QString stock)
@@ -18,10 +22,17 @@ void ItemTable::AddItem(QString name, QString price, QString stock, int row)
     if(row > rowCount() - 1) insertRow(row);
     setItem(row, 0, new QTableWidgetItem(name));
     setItem(row, 1, new QTableWidgetItem(price));
-    setItem(row, 2, new QTableWidgetItem(stock));
+
+//    setItem(row, 2, new QTableWidgetItem(stock));
+    CellItemSpinBox *cell_spin_widget = new CellItemSpinBox();
+    cell_spin_widget->SetValue(stock.toInt());
+    setCellWidget(row, 2, cell_spin_widget);
+
     CellItemChkBox *cell_widget = new CellItemChkBox();
     cell_widget->SetCheck(Qt::Checked);
     setCellWidget(row, 3, cell_widget);
+
+    setRowHeight(row, 30);
 }
 
 void ItemTable::keyPressEvent(QKeyEvent *event)

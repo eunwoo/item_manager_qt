@@ -12,8 +12,10 @@
 #include <QTableWidgetSelectionRange>
 #include <QCheckBox>
 #include <QMessageBox>
+#include <QStandardItemModel>
 #include "newitemdialog.h"
 #include "cellitemchkbox.h"
+#include "cellitemspinbox.h"
 
 MainWindow::MainWindow(QWidget *parent)
     : QMainWindow(parent)
@@ -21,15 +23,16 @@ MainWindow::MainWindow(QWidget *parent)
 {
     ui->setupUi(this);
 
-    ui->tableWidget->setColumnCount(4);
+    ui->tableWidget->setColumnCount(5);
     QStringList tableHeader;
-    tableHeader << "품 명" << "가 격" << "재 고" << "활성화";
+    tableHeader << "품 명" << "가 격" << "재 고" << "활성화" << "태그";
     ui->tableWidget->setHorizontalHeaderLabels(tableHeader);
     ui->tableWidget->setRowCount(1000);
     ui->tableWidget->setColumnWidth(0, 260);
     ui->tableWidget->setColumnWidth(1, 80);
     ui->tableWidget->setColumnWidth(2, 80);
     ui->tableWidget->setColumnWidth(3, 60);
+    ui->tableWidget->setColumnWidth(3, 100);
     connect(ui->lineEdit_2, SIGNAL(FindValueChanged(QString)), this, SLOT(FindValueChanged(QString)));
 
     ui->matchTableWidget->setColumnCount(3);
@@ -47,9 +50,9 @@ MainWindow::MainWindow(QWidget *parent)
     ui->comboBox->addItem("아이템1");
     ui->comboBox->addItem("아이템2");
 
-    setGeometry(100,100, 600, 800);
+    setGeometry(100,100, 800, 800);
     setWindowTitle(QString("아이템 관리자 - ") + QString(APP_VERSION));
-    setWindowIcon(QIcon("up.png"));
+//    setWindowIcon(QIcon("up.png"));
 
     LoadData();
     rowSelected = new QMap<int, int>();
@@ -217,8 +220,12 @@ void MainWindow::exportToExcel(QString filename, bool is_only_editable, int expo
                 }
                 sheet->querySubObject("Cells(Int,Int)",row,2)->setProperty("Value",strList.join(""));
             }
-            sheet->querySubObject("Cells(Int,Int)",row,3)->setProperty("Value",ui->tableWidget->item(i, 2)->text());
-
+            // 재고
+            CellItemSpinBox *spin = (CellItemSpinBox *)ui->tableWidget->cellWidget(i, 2);
+            if(spin != nullptr) {
+                sheet->querySubObject("Cells(Int,Int)",row,3)->setProperty("Value",QString::number(spin->spinBox->value()).toUtf8().constData());
+            }
+            // 활성화
             sheet->querySubObject("Cells(Int,Int)",row,4)->setProperty("Value",isActivated?"O":"");
 
             row++;
@@ -268,6 +275,7 @@ void MainWindow::exportToExcel(QString filename, bool is_only_editable, int expo
     qInfo() << filename_only;
     qInfo() << QStandardPaths::writableLocation(QStandardPaths::DocumentsLocation);
     qInfo() << filename.replace("/", "\\");
+    QFile::remove(filename);
     workbook->dynamicCall("SaveAs(QString&)", filename.replace("/", "\\"));
 //    workbook->dynamicCall("SaveAs (const QString&,int,const QString&,const QString&,bool,bool)",filename,56,QString(""),QString(""),false,false);
     workbook->dynamicCall("Close()");
@@ -334,11 +342,12 @@ void MainWindow::exportToTxt(QString filename, bool is_only_editable, int export
             // 재고 출력
             strOut.sprintf("%s", QString::fromUtf8(" (재고: ").toUtf8().constData());
             out << strOut;
-            if(QString::compare(ui->tableWidget->item(i,2)->text(), "") == 0) {
+            CellItemSpinBox *spin = (CellItemSpinBox *)ui->tableWidget->cellWidget(i, 2);
+            if(spin == nullptr) {
                 out << "0";
             }
             else {
-                strCell1.sprintf("%s", ui->tableWidget->item(i, 2)->text().toUtf8().constData());
+                strCell1.sprintf("%s", QString::number(spin->spinBox->value()).toUtf8().constData());
                 out << strCell1;
             }
             strOut.sprintf("%s", QString::fromUtf8("개)\n").toUtf8().constData());
@@ -522,6 +531,36 @@ void MainWindow::exportToHtml(QString filename, bool is_only_editable, int expor
     QTextStream out(&file);
     out.setCodec("UTF-8");
     QString strOut;
+
+//    out << tr("<style>\n");
+//    out << tr("table {border-collapse: collapse;}\n");
+//    out << tr("</style>\n");
+
+    out << tr("<table border=\"1\" width=\"100%\" style=\"border-collapse:collapse\">\n");
+
+    out << tr("<tr>\n");
+    out << tr("<td colspan=\"4\" align=\"center\">제목</td>\n");
+    out << tr("</tr>\n");
+
+    out << tr("<tr>\n");
+    out << tr("<td>품명</td>\n");
+    out << tr("<td>가격</td>\n");
+    out << tr("<td>재고</td>\n");
+    out << tr("<td>검색어</td>\n");
+    out << tr("</tr>\n");
+
+    out << tr("<tr>\n");
+    out << tr("<td colspan=\"4\" align=\"center\" bgcolor=\"blue\">중분류</td>\n");
+    out << tr("</tr>\n");
+
+    out << tr("<tr>\n");
+    out << tr("<td>아이템1</td>\n");
+    out << tr("<td>1000</td>\n");
+    out << tr("<td>2</td>\n");
+    out << tr("<td>#아이템</td>\n");
+    out << tr("</tr>\n");
+
+    out << tr("</table>\n");
     for(int i = 0; i < ui->tableWidget->rowCount(); ++i) {
         if(ui->tableWidget->item(i, 0) == nullptr) break;
         // 행이 비어있으면 더이상 아이템이 없다고 간주
@@ -564,11 +603,12 @@ void MainWindow::exportToHtml(QString filename, bool is_only_editable, int expor
             // 재고 출력
             strOut.sprintf("%s", QString::fromUtf8(" (재고: ").toUtf8().constData());
             out << strOut;
-            if(QString::compare(ui->tableWidget->item(i,2)->text(), "") == 0) {
+            CellItemSpinBox *spin = (CellItemSpinBox *)ui->tableWidget->cellWidget(i, 2);
+            if(spin == nullptr) {
                 out << "0";
             }
             else {
-                strCell1.sprintf("%s", ui->tableWidget->item(i, 2)->text().toUtf8().constData());
+                strCell1.sprintf("%s", QString::number(spin->spinBox->value()).toUtf8().constData());
                 out << strCell1;
             }
             strOut.sprintf("%s", QString::fromUtf8("개)").toUtf8().constData());
@@ -720,8 +760,20 @@ bool MainWindow::SaveData()
             break;
         }
         item.push_back(ui->tableWidget->item(i, 0)->text());
+
+        // 가격
         item.push_back(ui->tableWidget->item(i, 1)->text());
-        item.push_back(ui->tableWidget->item(i, 2)->text());
+
+        // 재고
+//        item.push_back(ui->tableWidget->item(i, 2)->text());
+        CellItemSpinBox *spin = (CellItemSpinBox *)ui->tableWidget->cellWidget(i, 2);
+        if(spin != nullptr) {
+            item.push_back(QString::number(spin->spinBox->value()));
+        }
+        else {
+            item.push_back("");
+        }
+
         CellItemChkBox *chk = (CellItemChkBox *)ui->tableWidget->cellWidget(i, 3);
         item.push_back(chk->GetCheck()?"true":"false");
         items.push_back(item);
@@ -868,10 +920,18 @@ bool MainWindow::SwapTableItem(QTableWidget *tablewidget, int rowSrc, int rowDes
     itemDst = tablewidget->takeItem(rowDest, 1);
     tablewidget->setItem(rowSrc, 1, itemDst);
     tablewidget->setItem(rowDest, 1, itemSrc);
-    itemSrc = tablewidget->takeItem(rowSrc, 2);
-    itemDst = tablewidget->takeItem(rowDest, 2);
-    tablewidget->setItem(rowSrc, 2, itemDst);
-    tablewidget->setItem(rowDest, 2, itemSrc);
+
+    // 재고
+//    itemSrc = tablewidget->takeItem(rowSrc, 2);
+//    itemDst = tablewidget->takeItem(rowDest, 2);
+//    tablewidget->setItem(rowSrc, 2, itemDst);
+//    tablewidget->setItem(rowDest, 2, itemSrc);
+    CellItemSpinBox *spinWidgetSrc = (CellItemSpinBox *)tablewidget->cellWidget(rowSrc, 2);
+    CellItemSpinBox *spinWidgetDst = (CellItemSpinBox *)tablewidget->cellWidget(rowDest, 2);
+    int spinWidgetSrcValue = spinWidgetSrc->spinBox->value();
+    int spinWidgetDstValue = spinWidgetDst->spinBox->value();
+    spinWidgetSrc->spinBox->setValue(spinWidgetDstValue);
+    spinWidgetDst->spinBox->setValue(spinWidgetSrcValue);
 
     // 활성화 체크 상태 swap
     Qt::CheckState chkSrc = chkWidgetSrc->GetCheck();

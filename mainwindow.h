@@ -4,6 +4,7 @@
 #include <QMainWindow>
 #include <QJsonObject>
 #include <QTableWidget>
+#include <QStandardItemModel>
 
 #define APP_VERSION "Ver. 22.0"
 

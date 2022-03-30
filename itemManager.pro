@@ -11,19 +11,23 @@ CONFIG += c++11
 SOURCES += \
     ItemTable.cpp \
     cellitemchkbox.cpp \
+    cellitemspinbox.cpp \
     lineedit.cpp \
     main.cpp \
     mainwindow.cpp \
     matchtable.cpp \
-    newitemdialog.cpp
+    newitemdialog.cpp \
+    spinboxdelegate.cpp
 
 HEADERS += \
     ItemTable.h \
     cellitemchkbox.h \
+    cellitemspinbox.h \
     lineedit.h \
     mainwindow.h \
     matchtable.h \
-    newitemdialog.h
+    newitemdialog.h \
+    spinboxdelegate.h
 
 FORMS += \
     mainwindow.ui \
