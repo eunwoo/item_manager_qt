@@ -10,29 +10,33 @@ ItemTable::ItemTable(QWidget *parent) : QTableWidget(parent)
 ItemTable::~ItemTable() {
 }
 
-void ItemTable::InsertItem(QString name, QString price, QString stock)
+void ItemTable::InsertItem(QString name, QString price, QString stock, bool isActivated, QString tag)
 {
     int currentRowNo = currentRow();
     if(currentRowNo == -1) currentRowNo = 0;    // 선택된 셀이 없을 경우 처음에 삽입
     insertRow(currentRowNo + 1);
-    AddItem(name, price, stock, currentRowNo + 1);
+    AddItem(name, price, stock, isActivated, tag, currentRowNo + 1);
 }
-void ItemTable::AddItem(QString name, QString price, QString stock, int row)
+void ItemTable::AddItem(QString name, QString price, QString stock, bool isActivated, QString tag, int row)
 {
     if(row > rowCount() - 1) insertRow(row);
     setItem(row, 0, new QTableWidgetItem(name));
     setItem(row, 1, new QTableWidgetItem(price));
 
-//    setItem(row, 2, new QTableWidgetItem(stock));
     CellItemSpinBox *cell_spin_widget = new CellItemSpinBox();
     cell_spin_widget->SetValue(stock.toInt());
     setCellWidget(row, 2, cell_spin_widget);
 
     CellItemChkBox *cell_widget = new CellItemChkBox();
-    cell_widget->SetCheck(Qt::Checked);
+    if(isActivated) {
+        cell_widget->SetCheck(Qt::Checked);
+    }
+    else {
+        cell_widget->SetCheck(Qt::Unchecked);
+    }
     setCellWidget(row, 3, cell_widget);
 
-    setRowHeight(row, 30);
+    setItem(row, 4, new QTableWidgetItem(tag));
 }
 
 void ItemTable::keyPressEvent(QKeyEvent *event)

@@ -3,6 +3,7 @@
 
 #include <QMainWindow>
 #include <QJsonObject>
+#include <QJsonArray>
 #include <QTableWidget>
 #include <QStandardItemModel>
 
@@ -19,6 +20,7 @@ class MainWindow : public QMainWindow
 public:
     QJsonObject jsonObj;
     QMap<int, int> *rowSelected;
+    QJsonArray json_export;
 
     MainWindow(QWidget *parent = nullptr);
     ~MainWindow();
@@ -34,6 +36,9 @@ public:
     void exportToHtml(QString filename, bool is_only_editable, int export_option);
     QString GetEquivalentItem(float price, int option);
     QString convertToHtml(QString strInput);
+    void MakeExportJson();
+    int GetRowByNameInExportTable(QString str);
+    void GenerateStyleTag(int row_export, QTextStream &out, int colspan = 0);
 
 private slots:
     virtual void changeEvent(QEvent *event);

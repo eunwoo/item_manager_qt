@@ -6,6 +6,7 @@ CellItemSpinBox::CellItemSpinBox(QWidget *parent)
     spinBox = new QSpinBox();
     spinBox->setSizePolicy(QSizePolicy(QSizePolicy::Expanding, QSizePolicy::Expanding));
 //    spinBox->setStyleSheet("QSpinBox::up-button {subcontrol-origin: border;subcontrol-position: top right; width: 16px; border-image: url(./up.png) 1;border-width: 1px;}");
+    spinBox->setStyleSheet("QSpinBox::up-button { width: 30px; } QSpinBox::down-button { width: 30px; }");
 //    QVBoxLayout *vlayout = new QVBoxLayout(this);
 
     QVBoxLayout *layout = new QVBoxLayout(this);

@@ -16,8 +16,8 @@ public:
     ~ItemTable();
     SpinBoxDelegate delegate;
 
-    void InsertItem(QString name, QString price, QString stock);
-    void AddItem(QString name, QString price, QString stock, int row);
+    void InsertItem(QString name, QString price, QString stock, bool isActivated, QString tag);
+    void AddItem(QString name, QString price, QString stock, bool isActivated, QString tag, int row);
     void Find(QString text);
 
     // virtual function

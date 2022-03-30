@@ -109,26 +109,30 @@ void MainWindow::on_pushButton_clicked()    // 불러오기
         auto cCell1 = sheet->querySubObject("Cells(int,int)", r + 1, 1);
         auto cCell2 = sheet->querySubObject("Cells(int,int)", r + 1, 2);
         auto cCell3 = sheet->querySubObject("Cells(int,int)", r + 1, 3);
+        auto cCell4 = sheet->querySubObject("Cells(int,int)", r + 1, 4);
+        auto cCell5 = sheet->querySubObject("Cells(int,int)", r + 1, 5);
+
         QVariant data1 = cCell1->dynamicCall("Value()");
         QVariant data2 = cCell2->dynamicCall("Value()");
         QVariant data3 = cCell3->dynamicCall("Value()");
+        QVariant data4 = cCell4->dynamicCall("Value()");
+        QVariant data5 = cCell5->dynamicCall("Value()");
+
         if(QString::compare(data1.toString(), "", Qt::CaseInsensitive) == 0) {
             break;
         }
         QString strPrice = data2.toString();
         QStringList splitPrice = strPrice.split("또는");
-        ui->tableWidget->AddItem(data1.toString(), splitPrice[0].trimmed(), data3.toString(), r - 1);
 
-        auto cCell4 = sheet->querySubObject("Cells(int,int)", r + 1, 4);
-        QVariant data4 = cCell4->dynamicCall("Value()");
         CellItemChkBox *cell_widget = new CellItemChkBox();
+        bool isActivated;
         if(data4.toString().length() > 0) {
-            cell_widget->SetCheck(Qt::Checked);
+            isActivated = true;
         }
         else {
-            cell_widget->SetCheck(Qt::Unchecked);
+            isActivated = false;
         }
-        ui->tableWidget->setCellWidget(r-1, 3, cell_widget);
+        ui->tableWidget->AddItem(data1.toString(), splitPrice[0].trimmed(), data3.toString(), isActivated, data4.toString(), r - 1);
     }
 
     sheet = sheets->querySubObject("Item(int)", 2);
@@ -533,6 +537,56 @@ QString MainWindow::convertToHtml(QString strInput)
     parse.Parse();
     return parse.toHtml();
 }
+int MainWindow::GetRowByNameInExportTable(QString str)
+{
+    int row = 0;
+    foreach(const QJsonValue & arr, json_export){
+        foreach(const QJsonValue & v, arr.toArray()){
+            if(QString::compare(v.toString(), str) == 0) {
+                return row;
+            }
+        }
+        row++;
+    }
+    return -1;  // not found
+}
+void MainWindow::GenerateStyleTag(int row_export, QTextStream &out, int colspan)
+{
+    if(row_export != -1) {
+        if(QString::compare(ui->exportTableWidget->item(row_export, 6)->text(), "") != 0) {
+            if(colspan > 0) {
+                out << "<td bgcolor=\"" << ui->exportTableWidget->item(row_export, 6)->text() << "\" colspan=\"" << QString::number(colspan) << "\">";
+            }
+            else {
+                out << "<td bgcolor=\"" << ui->exportTableWidget->item(row_export, 6)->text() << "\">";
+            }
+        }
+        else {
+            out << tr("<td>");
+        }
+    }
+    else {
+        out << tr("<td>");
+    }
+    if(row_export != -1) {
+        if(QString::compare(ui->exportTableWidget->item(row_export, 2)->text(), "") != 0) {  // 글자크기
+            out << "<font size=\"" << ui->exportTableWidget->item(row_export, 2)->text() << "\">";
+        }
+        if(QString::compare(ui->exportTableWidget->item(row_export, 3)->text(), "") != 0) {
+            out << "<b>";
+        }
+        if(QString::compare(ui->exportTableWidget->item(row_export, 4)->text(), "") != 0) {
+            out << "<i>";
+        }
+        if(QString::compare(ui->exportTableWidget->item(row_export, 5)->text(), "") != 0) {
+            out << "<u>";
+        }
+        if(QString::compare(ui->exportTableWidget->item(row_export, 7)->text(), "") != 0) {
+            out << "<font color=\"" << ui->exportTableWidget->item(row_export, 7)->text() << "\">";
+        }
+    }
+
+}
 void MainWindow::exportToHtml(QString filename, bool is_only_editable, int export_option)
 {
     QStringList splitFilename = filename.split(".");
@@ -543,19 +597,21 @@ void MainWindow::exportToHtml(QString filename, bool is_only_editable, int expor
         qInfo() << "error in opening file";
         return;
     }
+
+    MakeExportJson();
+    int price_row = GetRowByNameInExportTable("* 가격");
+    int stock_row = GetRowByNameInExportTable("* 재고");
+    int tag_row = GetRowByNameInExportTable("* 검색어");
+    int title1_row = GetRowByNameInExportTable("<대제목>");
     QTextStream out(&file);
+//    QTextStream out(stderr);
     out.setCodec("UTF-8");
     QString strOut;
 
-//    out << tr("<style>\n");
-//    out << tr("table {border-collapse: collapse;}\n");
-//    out << tr("</style>\n");
-
+    out << tr("<html>\n");
+    out << tr("<head></head>\n");
+    out << tr("<body>\n");
     out << tr("<table border=\"1\" width=\"100%\" style=\"border-collapse:collapse\">\n");
-
-    out << tr("<tr>\n");
-    out << tr("<td colspan=\"4\" align=\"center\">제목</td>\n");
-    out << tr("</tr>\n");
 
     out << tr("<tr>\n");
     out << tr("<td>품명</td>\n");
@@ -564,18 +620,6 @@ void MainWindow::exportToHtml(QString filename, bool is_only_editable, int expor
     out << tr("<td>검색어</td>\n");
     out << tr("</tr>\n");
 
-    out << tr("<tr>\n");
-    out << tr("<td colspan=\"4\" align=\"center\" bgcolor=\"blue\">중분류</td>\n");
-    out << tr("</tr>\n");
-
-    out << tr("<tr>\n");
-    out << tr("<td>아이템1</td>\n");
-    out << tr("<td>1000</td>\n");
-    out << tr("<td>2</td>\n");
-    out << tr("<td>#아이템</td>\n");
-    out << tr("</tr>\n");
-
-    out << tr("</table>\n");
     for(int i = 0; i < ui->tableWidget->rowCount(); ++i) {
         if(ui->tableWidget->item(i, 0) == nullptr) break;
         // 행이 비어있으면 더이상 아이템이 없다고 간주
@@ -587,21 +631,28 @@ void MainWindow::exportToHtml(QString filename, bool is_only_editable, int expor
         if(!is_only_editable || isActivated) {
             QString strCell1;
             if(QString::compare(ui->tableWidget->item(i, 0)->text(), "@@") == 0) {
-                out << "<br>\n";
+                continue;
+            }
+            else if(ui->tableWidget->item(i, 0)->text().contains(("<대제목>"))) {
+                strCell1.sprintf("%s", ui->tableWidget->item(i, 0)->text().toUtf8().constData());
+                out << tr("<tr>\n");
+                GenerateStyleTag(title1_row, out, 4);
+                out << strCell1.replace("<대제목>", "") << tr("</td></tr>\n");
                 continue;
             }
             else {
+                // 품명
                 strCell1.sprintf("%s", ui->tableWidget->item(i, 0)->text().toUtf8().constData());
-                out << convertToHtml(strCell1);
+                out << tr("<tr>\n");
+                out << tr("<td>") << convertToHtml(strCell1) << tr("</td>\n");
             }
             // 가격 출력
             if(QString::compare(ui->tableWidget->item(i,1)->text(), "") == 0) {
-                strCell1.sprintf("%s", "");
-                out << strCell1;
-                out << "<br>\n";
-                continue;
+                out << tr("<td></td>\n");
             }
             else {
+                GenerateStyleTag(price_row, out);
+
                 float price_multiplied = ui->tableWidget->item(i,1)->text().toFloat() * ui->lineEdit->text().toFloat();
                 QStringList strList;
                 strList << QString::number((int)price_multiplied);
@@ -612,25 +663,35 @@ void MainWindow::exportToHtml(QString filename, bool is_only_editable, int expor
                     strList << " 또는 " << strEquivItem;
                 }
                 strCell1.sprintf("%s",strList.join("").toUtf8().constData());
-                out << " - ";
                 out << strCell1;
+                out << tr("</td>\n");
             }
             // 재고 출력
-            strOut.sprintf("%s", QString::fromUtf8(" (재고: ").toUtf8().constData());
-            out << strOut;
             CellItemSpinBox *spin = (CellItemSpinBox *)ui->tableWidget->cellWidget(i, 2);
             if(spin == nullptr) {
-                out << "0";
+                out << "0" ;
             }
             else {
+                GenerateStyleTag(stock_row, out);
                 strCell1.sprintf("%s", QString::number(spin->spinBox->value()).toUtf8().constData());
                 out << strCell1;
             }
-            strOut.sprintf("%s", QString::fromUtf8("개)").toUtf8().constData());
-            out << strOut;
-            out << "<br>\n";
+            out << tr("</td>\n");
+            // 검색어
+            GenerateStyleTag(tag_row, out);
+            if(ui->tableWidget->item(i,4) != nullptr) {
+                out << ui->tableWidget->item(i,4)->text();
+            }
+            out << tr("</td>\n");
+
         }
+        out << tr("</tr>\n");
     }
+
+    out << tr("</table>\n");
+    out << tr("</body>\n");
+    out << tr("</html>\n");
+
     file.flush();
     file.close();
 
@@ -738,16 +799,18 @@ bool MainWindow::LoadData()
     int row = 0;
     foreach(const QJsonValue & val, items.toArray()){
         QJsonArray cellValue = val.toArray();
-        ui->tableWidget->AddItem(cellValue[0].toString(), cellValue[1].toString(), cellValue[2].toString(), row);
-        if(cellValue.size() > 3) {
-            CellItemChkBox *cell_widget = new CellItemChkBox();
-            if(QString::compare(cellValue[3].toString(), "true") == 0) {
-                cell_widget->SetCheck(Qt::Checked);
-            }
-            else {
-                cell_widget->SetCheck(Qt::Unchecked);
-            }
-            ui->tableWidget->setCellWidget(row, 3, cell_widget);
+        bool isActivated;
+        if(cellValue[3].toString().length() > 0) {
+            isActivated = true;
+        }
+        else {
+            isActivated = false;
+        }
+        if(cellValue.size() < 5) {
+            ui->tableWidget->AddItem(cellValue[0].toString(), cellValue[1].toString(), cellValue[2].toString(), isActivated, "", row);
+        }
+        else {
+            ui->tableWidget->AddItem(cellValue[0].toString(), cellValue[1].toString(), cellValue[2].toString(), isActivated, cellValue[4].toString(), row);
         }
         row++;
     }
@@ -782,7 +845,29 @@ bool MainWindow::LoadData()
 
     return true;
 }
-
+void MainWindow::MakeExportJson()
+{
+    while(json_export.count()) {
+        json_export.pop_back();
+    }
+    for(int i = 0; i < ui->exportTableWidget->rowCount(); ++i) {
+        QJsonArray item;
+        if(ui->exportTableWidget->item(i, 0) == nullptr) break;
+        if(QString::compare(ui->exportTableWidget->item(i, 0)->text(), "", Qt::CaseInsensitive) == 0) {
+            break;
+        }
+        for(int j = 0; j < ui->exportTableWidget->columnCount(); ++j) {
+            QTableWidgetItem *cellitem = ui->exportTableWidget->item(i, j);
+            if(cellitem == nullptr) {
+                item.push_back("");
+            }
+            else {
+                item.push_back(cellitem->text());
+            }
+        }
+        json_export.push_back(item);
+    }
+}
 bool MainWindow::SaveData()
 {
     QJsonObject root;
@@ -811,6 +896,10 @@ bool MainWindow::SaveData()
 
         CellItemChkBox *chk = (CellItemChkBox *)ui->tableWidget->cellWidget(i, 3);
         item.push_back(chk->GetCheck()?"true":"false");
+
+        // 검색태그
+        item.push_back(ui->tableWidget->item(i, 4)->text());
+
         items.push_back(item);
     }
     root["items"] = items;
@@ -829,25 +918,9 @@ bool MainWindow::SaveData()
     }
     root["matching"] = items1;
 
-    QJsonArray items2;
-    for(int i = 0; i < ui->exportTableWidget->rowCount(); ++i) {
-        QJsonArray item;
-        if(ui->exportTableWidget->item(i, 0) == nullptr) break;
-        if(QString::compare(ui->exportTableWidget->item(i, 0)->text(), "", Qt::CaseInsensitive) == 0) {
-            break;
-        }
-        for(int j = 0; j < ui->exportTableWidget->columnCount(); ++j) {
-            QTableWidgetItem *cellitem = ui->exportTableWidget->item(i, j);
-            if(cellitem == nullptr) {
-                item.push_back("");
-            }
-            else {
-                item.push_back(cellitem->text());
-            }
-        }
-        items2.push_back(item);
-    }
-    root["export"] = items2;
+
+    MakeExportJson();
+    root["export"] = json_export;
     root["row_height"] = QString::number(ui->tableWidget->rowHeight(0));
 
 
@@ -878,7 +951,7 @@ void MainWindow::on_action_triggered()  // 새로만들기
     if(dialog->exec() == QDialog::Accepted) {
         qInfo() << "accepted";
         qInfo() << uiDialog.lineEdit->text();
-        ui->tableWidget->InsertItem(uiDialog.lineEdit->text(), uiDialog.lineEdit_2->text(), uiDialog.lineEdit_3->text());
+        ui->tableWidget->InsertItem(uiDialog.lineEdit->text(), uiDialog.lineEdit_2->text(), uiDialog.lineEdit_3->text(), true, "");
     }
 
 }
@@ -901,7 +974,7 @@ void MainWindow::on_action_U_triggered()    // 복제하기
     if(dialog->exec() == QDialog::Accepted) {
         qInfo() << "accepted";
         qInfo() << uiDialog.lineEdit->text();
-        ui->tableWidget->InsertItem(uiDialog.lineEdit->text(), uiDialog.lineEdit_2->text(), uiDialog.lineEdit_3->text());
+        ui->tableWidget->InsertItem(uiDialog.lineEdit->text(), uiDialog.lineEdit_2->text(), uiDialog.lineEdit_3->text(), true, "");
     }
 }
 
