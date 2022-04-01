@@ -18,6 +18,7 @@ SOURCES += \
     mainwindow.cpp \
     matchtable.cpp \
     newitemdialog.cpp \
+    parser.cpp \
     spinboxdelegate.cpp
 
 HEADERS += \
@@ -29,6 +30,7 @@ HEADERS += \
     mainwindow.h \
     matchtable.h \
     newitemdialog.h \
+    parser.h \
     spinboxdelegate.h
 
 FORMS += \

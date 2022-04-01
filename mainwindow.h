@@ -7,7 +7,7 @@
 #include <QTableWidget>
 #include <QStandardItemModel>
 
-#define APP_VERSION "Ver. 23.0"
+#define APP_VERSION "Ver. 24.0"
 
 QT_BEGIN_NAMESPACE
 namespace Ui { class MainWindow; }
@@ -38,7 +38,9 @@ public:
     QString convertToHtml(QString strInput);
     void MakeExportJson();
     int GetRowByNameInExportTable(QString str);
-    void GenerateStyleTag(int row_export, QTextStream &out, int colspan = 0);
+    void GenerateStyleTag(int row_export, QTextStream &out, QString text, int colspan = 0);
+    int FindExportTag(QMap<QString, int> &map, QString srcText);
+    QString StripTag(QString str);
 
 private slots:
     virtual void changeEvent(QEvent *event);
