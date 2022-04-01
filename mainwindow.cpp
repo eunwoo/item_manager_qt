@@ -95,9 +95,12 @@ void MainWindow::on_pushButton_clicked()    // 불러오기
     if(QString::compare(filename, "", Qt::CaseInsensitive) == 0) {
         return;
     }
+    QApplication::setOverrideCursor(Qt::WaitCursor);
+
     QAxObject* excel = new QAxObject( "Excel.Application", 0 );
     QAxObject* workbooks = excel->querySubObject( "Workbooks" );
-    QAxObject* workbook = workbooks->querySubObject( "Open(const QString&)", QString(filename));
+//    QAxObject* workbook = workbooks->querySubObject( "Open(const QString&)", QString(filename));
+    QAxObject* workbook = workbooks->querySubObject( "Open(const QString&)", filename.replace("/", "\\"));
     QAxObject* sheets = workbook->querySubObject( "Worksheets" );
     QList<QVariantList> data; //Data list from excel, each QVariantList is worksheet row
 
@@ -106,11 +109,11 @@ void MainWindow::on_pushButton_clicked()    // 불러오기
     //worksheets count
     auto sheet = sheets->querySubObject("Item(int)", 1);
     for (int r = 1; true ; ++r) {
-        auto cCell1 = sheet->querySubObject("Cells(int,int)", r + 1, 1);
-        auto cCell2 = sheet->querySubObject("Cells(int,int)", r + 1, 2);
-        auto cCell3 = sheet->querySubObject("Cells(int,int)", r + 1, 3);
-        auto cCell4 = sheet->querySubObject("Cells(int,int)", r + 1, 4);
-        auto cCell5 = sheet->querySubObject("Cells(int,int)", r + 1, 5);
+        auto cCell1 = sheet->querySubObject("Cells(int,int)", r + 1, 1);    // 이름
+        auto cCell2 = sheet->querySubObject("Cells(int,int)", r + 1, 2);    // 가격
+        auto cCell3 = sheet->querySubObject("Cells(int,int)", r + 1, 3);    // 재고
+        auto cCell4 = sheet->querySubObject("Cells(int,int)", r + 1, 4);    // 활성화
+        auto cCell5 = sheet->querySubObject("Cells(int,int)", r + 1, 5);    // 태그
 
         QVariant data1 = cCell1->dynamicCall("Value()");
         QVariant data2 = cCell2->dynamicCall("Value()");
@@ -131,7 +134,7 @@ void MainWindow::on_pushButton_clicked()    // 불러오기
         else {
             isActivated = false;
         }
-        ui->tableWidget->AddItem(data1.toString(), splitPrice[0].trimmed(), data3.toString(), isActivated, data4.toString(), r - 1);
+        ui->tableWidget->AddItem(data1.toString(), splitPrice[0].trimmed(), data3.toString(), isActivated, data5.toString(), r - 1);
     }
 
     sheet = sheets->querySubObject("Item(int)", 2);
@@ -148,8 +151,46 @@ void MainWindow::on_pushButton_clicked()    // 불러오기
         ui->matchTableWidget->AddItem(data1.toString(), data2.toString(), data3.toString(), r - 1);
     }
 
+    // 내보내기 테이블 초기화
+    ClearTable(ui->exportTableWidget);
+    sheet = sheets->querySubObject("Item(int)", 3);
+    for (int r = 1; r <= true; ++r) {
+        auto cCell1 = sheet->querySubObject("Cells(int,int)", r + 1, 1);    // 태그
+        auto cCell2 = sheet->querySubObject("Cells(int,int)", r + 1, 2);    // txt 파일변환
+        auto cCell3 = sheet->querySubObject("Cells(int,int)", r + 1, 3);    // 글자크기
+        auto cCell4 = sheet->querySubObject("Cells(int,int)", r + 1, 4);    // 굵게
+        auto cCell5 = sheet->querySubObject("Cells(int,int)", r + 1, 5);    // 이탤릭체
+        auto cCell6 = sheet->querySubObject("Cells(int,int)", r + 1, 6);    // 밑줄
+        auto cCell7 = sheet->querySubObject("Cells(int,int)", r + 1, 7);    // 배경색
+        auto cCell8 = sheet->querySubObject("Cells(int,int)", r + 1, 8);    // 글자색
+
+        QVariant data1 = cCell1->dynamicCall("Value()");
+        QVariant data2 = cCell2->dynamicCall("Value()");
+        QVariant data3 = cCell3->dynamicCall("Value()");
+        QVariant data4 = cCell4->dynamicCall("Value()");
+        QVariant data5 = cCell5->dynamicCall("Value()");
+        QVariant data6 = cCell6->dynamicCall("Value()");
+        QVariant data7 = cCell7->dynamicCall("Value()");
+        QVariant data8 = cCell8->dynamicCall("Value()");
+
+        if(QString::compare(data1.toString(), "", Qt::CaseInsensitive) == 0) {
+            break;
+        }
+        ui->exportTableWidget->AddItem(data1.toString(), data2.toString(), data3.toString(), data4.toString(),
+                                       data5.toString(), data6.toString(), data7.toString(), data8.toString(), r - 1);
+    }
+
     workbook->dynamicCall("Close()");
     excel->dynamicCall("Quit()");
+    delete excel;
+
+    QApplication::restoreOverrideCursor();
+
+    QMessageBox msgBox;
+    msgBox.setStandardButtons(QMessageBox::Ok);
+    msgBox.setText("완료되었습니다");
+    QApplication::alert(this);
+    msgBox.exec();
 }
 
 void excelSetColumnWidth(QAxObject *sheet, int column, int width)
@@ -204,9 +245,13 @@ void MainWindow::exportToExcel(QString filename, bool is_only_editable, int expo
     sheet->querySubObject("Cells(Int,Int)",row,1)->setProperty("Value","품 명");
     sheet->querySubObject("Cells(Int,Int)",row,2)->setProperty("Value","가 격");
     sheet->querySubObject("Cells(Int,Int)",row,3)->setProperty("Value","재 고");
+    sheet->querySubObject("Cells(Int,Int)",row,4)->setProperty("Value","활성화");
+    sheet->querySubObject("Cells(Int,Int)",row,5)->setProperty("Value","태 그");
     excelSetColumnWidth(sheet, 1, 30);
     excelSetColumnWidth(sheet, 2, 30);
     excelSetColumnWidth(sheet, 3, 10);
+    excelSetColumnWidth(sheet, 4, 10);
+    excelSetColumnWidth(sheet, 5, 50);
     row++;
     for(int i = 0; i < ui->tableWidget->rowCount(); ++i) {
         if(ui->tableWidget->item(i, 0) == nullptr) break;
@@ -246,6 +291,9 @@ void MainWindow::exportToExcel(QString filename, bool is_only_editable, int expo
             // 활성화
             sheet->querySubObject("Cells(Int,Int)",row,4)->setProperty("Value",isActivated?"O":"");
 
+            // 태그
+            sheet->querySubObject("Cells(Int,Int)",row,5)->setProperty("Value",ui->tableWidget->item(i, 4)->text());
+
             row++;
         }
     }
@@ -275,11 +323,62 @@ void MainWindow::exportToExcel(QString filename, bool is_only_editable, int expo
         if(QString::compare(ui->matchTableWidget->item(i, 0)->text(), "", Qt::CaseInsensitive) == 0) {
             break;
         }
-        sheet->querySubObject("Cells(Int,Int)",row,1)->setProperty("Value","'"+ui->matchTableWidget->item(i, 0)->text());
+        sheet->querySubObject("Cells(Int,Int)",row,1)->setProperty("Value","'"+ui->matchTableWidget->item(i, 0)->text());   // "'"는 셀이 텍스트 속정을 갖게 하기 위함
         sheet->querySubObject("Cells(Int,Int)",row,2)->setProperty("Value",ui->matchTableWidget->item(i, 1)->text());
         sheet->querySubObject("Cells(Int,Int)",row,3)->setProperty("Value",ui->matchTableWidget->item(i, 2)->text());
         row++;
     }
+
+    // 내보내기 테이블
+    // Sheets number
+    intCount = sheets->property("Count").toInt();
+
+    // Capture last sheet and add new sheet
+    lastSheet = sheets->querySubObject("Item(int)", intCount);
+    sheets->dynamicCall("Add(QVariant)", lastSheet->asVariant());
+
+    // Capture the new sheet and move to after last sheet
+    newSheet = sheets->querySubObject("Item(int)", intCount);
+    lastSheet->dynamicCall("Move(QVariant)", newSheet->asVariant());
+
+    sheet = newSheet;
+    row       = 1;
+    sheet->querySubObject("Cells(Int,Int)",row,1)->setProperty("Value","태그/항목");
+    sheet->querySubObject("Cells(Int,Int)",row,2)->setProperty("Value","txt 내보내기");
+    sheet->querySubObject("Cells(Int,Int)",row,3)->setProperty("Value","글자크기");
+    sheet->querySubObject("Cells(Int,Int)",row,4)->setProperty("Value","굵게");
+    sheet->querySubObject("Cells(Int,Int)",row,5)->setProperty("Value","기울이기");
+    sheet->querySubObject("Cells(Int,Int)",row,6)->setProperty("Value","밑줄");
+    sheet->querySubObject("Cells(Int,Int)",row,7)->setProperty("Value","바탕색");
+    sheet->querySubObject("Cells(Int,Int)",row,8)->setProperty("Value","글자색");
+    excelSetColumnWidth(sheet, 1, 20);
+    excelSetColumnWidth(sheet, 2, 20);
+    excelSetColumnWidth(sheet, 3, 20);
+    excelSetColumnWidth(sheet, 4, 20);
+    excelSetColumnWidth(sheet, 5, 20);
+    excelSetColumnWidth(sheet, 6, 20);
+    excelSetColumnWidth(sheet, 7, 20);
+    excelSetColumnWidth(sheet, 8, 20);
+    row++;
+    for(int i = 0; i < ui->exportTableWidget->rowCount(); ++i) {
+        if(ui->exportTableWidget->item(i, 0) == nullptr) break;
+        if(QString::compare(ui->exportTableWidget->item(i, 0)->text(), "", Qt::CaseInsensitive) == 0) {
+            break;
+        }
+        sheet->querySubObject("Cells(Int,Int)",row,1)->setProperty("Value",ui->exportTableWidget->item(i, 0)->text());
+        sheet->querySubObject("Cells(Int,Int)",row,2)->setProperty("Value",ui->exportTableWidget->item(i, 1)->text());
+        sheet->querySubObject("Cells(Int,Int)",row,3)->setProperty("Value",ui->exportTableWidget->item(i, 2)->text());
+        sheet->querySubObject("Cells(Int,Int)",row,4)->setProperty("Value",ui->exportTableWidget->item(i, 3)->text());
+        sheet->querySubObject("Cells(Int,Int)",row,5)->setProperty("Value",ui->exportTableWidget->item(i, 4)->text());
+        sheet->querySubObject("Cells(Int,Int)",row,6)->setProperty("Value",ui->exportTableWidget->item(i, 5)->text());
+        sheet->querySubObject("Cells(Int,Int)",row,7)->setProperty("Value",ui->exportTableWidget->item(i, 6)->text());
+        sheet->querySubObject("Cells(Int,Int)",row,8)->setProperty("Value",ui->exportTableWidget->item(i, 7)->text());
+        row++;
+    }
+
+
+
+
 
     QString documentPath = QStandardPaths::writableLocation(QStandardPaths::DocumentsLocation);
     QStringList split_filename = filename.split("/");
@@ -298,6 +397,7 @@ void MainWindow::exportToExcel(QString filename, bool is_only_editable, int expo
 //    workbook->dynamicCall("SaveAs (const QString&,int,const QString&,const QString&,bool,bool)",filename,56,QString(""),QString(""),false,false);
     workbook->dynamicCall("Close()");
     excel->dynamicCall("Quit()");
+    delete excel;
 
 //    QFile::remove(filename);
 //    QFile::copy(current_path+, filename);
@@ -405,7 +505,13 @@ int MainWindow::GetRowByNameInExportTable(QString str)
 }
 void MainWindow::GenerateStyleTag(int row_export, QTextStream &out, QString text, int colspan)
 {
-    QString color = ui->exportTableWidget->item(row_export, 6)->text();
+    QString color;
+    if(ui->exportTableWidget->item(row_export, 6) == nullptr) {
+        color = "";
+    }
+    else {
+        color = ui->exportTableWidget->item(row_export, 6)->text();
+    }
     if(row_export != -1) {
         if(QString::compare(color, "") != 0) {
             if(colspan > 0) {
@@ -575,8 +681,9 @@ void MainWindow::exportToHtml(QString filename, bool is_only_editable, int expor
                 out << "0" ;
             }
             else {
-                strCell1.sprintf("%s", QString::number(spin->spinBox->value()).toUtf8().constData());
-                GenerateStyleTag(stock_row, out, strCell1);
+                QString strStock = QString::number(spin->spinBox->value()).toUtf8().constData();
+//                strCell1.arg("%s", strStock);
+                GenerateStyleTag(stock_row, out, strStock);
             }
             out << tr("</td>\n");
             // 검색어
@@ -611,10 +718,13 @@ void MainWindow::on_pushButton_2_clicked()  // 내보내기(모두)
         return;
     }
 //    qInfo() << filename;
+    QApplication::setOverrideCursor(Qt::WaitCursor);
 
     exportToExcel(filename, false, ui->comboBox->currentIndex());
     exportToTxt(filename, false, ui->comboBox->currentIndex());
     exportToHtml(filename, false, ui->comboBox->currentIndex());
+
+    QApplication::restoreOverrideCursor();
 
     QMessageBox msgBox;
     msgBox.setStandardButtons(QMessageBox::Ok);
@@ -631,10 +741,13 @@ void MainWindow::on_pushButton_3_clicked()  // 내보내기(활성화만)
         return;
     }
 //    qInfo() << filename;
+    QApplication::setOverrideCursor(Qt::WaitCursor);
 
     exportToExcel(filename, true, ui->comboBox->currentIndex());
     exportToTxt(filename, true, ui->comboBox->currentIndex());
     exportToHtml(filename, true, ui->comboBox->currentIndex());
+
+    QApplication::restoreOverrideCursor();
 
     QMessageBox msgBox;
     msgBox.setStandardButtons(QMessageBox::Ok);
@@ -658,13 +771,26 @@ void MainWindow::keyPressEvent(QKeyEvent *event)
     if(event->key() == Qt::Key_Return) {
     }
     else if(event->key() == Qt::Key_Delete) {
-        int row = ui->tableWidget->currentRow();
+        QTableWidget *widget;
+        switch(ui->tabWidget->currentIndex()) {
+        case 0:
+            widget = ui->tableWidget;
+            break;
+        case 1:
+            widget = ui->matchTableWidget;
+            break;
+        case 2:
+            widget = ui->exportTableWidget;
+            break;
+        }
+
+        int row = widget->currentRow();
         if(row == -1) return;
         QMessageBox msgBox;
         msgBox.setStandardButtons(QMessageBox::Ok | QMessageBox::Cancel);
         msgBox.setText("지우시겠습니까?");
         if(msgBox.exec() == QMessageBox::Ok) {
-            QList<QTableWidgetSelectionRange> range = ui->tableWidget->selectedRanges();
+            QList<QTableWidgetSelectionRange> range = widget->selectedRanges();
             qInfo() << "다중삭제 " << range.length();
             rowSelected->clear();
             for(QList<QTableWidgetSelectionRange>::iterator selectionRange = range.begin();
@@ -681,7 +807,7 @@ void MainWindow::keyPressEvent(QKeyEvent *event)
             QList<int> rows = rowSelected->keys();
             for (QList<int>::iterator pos = rows.end() - 1; pos>=rows.begin(); pos--) {
                 qDebug() << QString::number(*pos);
-                ui->tableWidget->removeRow(*pos);
+                widget->removeRow(*pos);
             }
 
         }
@@ -755,6 +881,31 @@ bool MainWindow::LoadData()
         ui->tableWidget->setRowHeight(i, height);
     }
 
+    // restore column width
+    items = jsonObj.value("column_width");
+    if(items != QJsonValue::Null) {
+        {
+            QJsonArray json_arr = items.toArray()[0].toArray();
+            for(int i=0; i<ui->tableWidget->columnCount(); ++i) {
+                ui->tableWidget->setColumnWidth(i, json_arr[i].toString().toInt());
+            }
+        }
+
+        {
+            QJsonArray json_arr = items.toArray()[1].toArray();
+            for(int i=0; i<ui->matchTableWidget->columnCount(); ++i) {
+                ui->matchTableWidget->setColumnWidth(i, json_arr[i].toString().toInt());
+            }
+        }
+
+        {
+            QJsonArray json_arr = items.toArray()[2].toArray();
+            for(int i=0; i<ui->exportTableWidget->columnCount(); ++i) {
+                ui->exportTableWidget->setColumnWidth(i, json_arr[i].toString().toInt());
+            }
+        }
+    }
+
 
     return true;
 }
@@ -812,6 +963,7 @@ bool MainWindow::SaveData()
 
         // 검색태그
         item.push_back(ui->tableWidget->item(i, 4)->text());
+//        item.push_back("");
 
         items.push_back(item);
     }
@@ -836,6 +988,29 @@ bool MainWindow::SaveData()
     root["export"] = json_export;
     root["row_height"] = QString::number(ui->tableWidget->rowHeight(0));
 
+    QJsonArray json_column_width;
+    {
+        QJsonArray item;
+        for(int i = 0; i < ui->tableWidget->columnCount(); ++i) {
+            item.push_back(QString::number(ui->tableWidget->columnWidth(i)));
+        }
+        json_column_width.push_back(item);
+    }
+    {
+        QJsonArray item;
+        for(int i = 0; i < ui->matchTableWidget->columnCount(); ++i) {
+            item.push_back(QString::number(ui->matchTableWidget->columnWidth(i)));
+        }
+        json_column_width.push_back(item);
+    }
+    {
+        QJsonArray item;
+        for(int i = 0; i < ui->exportTableWidget->columnCount(); ++i) {
+            item.push_back(QString::number(ui->exportTableWidget->columnWidth(i)));
+        }
+        json_column_width.push_back(item);
+    }
+    root["column_width"] = json_column_width;
 
     QByteArray ba = QJsonDocument(root).toJson();
 //    QTextStream ts(stdout);
