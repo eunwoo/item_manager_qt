@@ -19,6 +19,7 @@ SOURCES += \
     matchtable.cpp \
     newitemdialog.cpp \
     parser.cpp \
+    settingdialog.cpp \
     spinboxdelegate.cpp
 
 HEADERS += \
@@ -31,12 +32,14 @@ HEADERS += \
     matchtable.h \
     newitemdialog.h \
     parser.h \
+    settingdialog.h \
     spinboxdelegate.h
 
 FORMS += \
     mainwindow.ui \
     newitemdialog.ui \
-    newitemdialog.ui
+    newitemdialog.ui \
+    settingdialog.ui
 
 # Default rules for deployment.
 qnx: target.path = /tmp/$${TARGET}/bin

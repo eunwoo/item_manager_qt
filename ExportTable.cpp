@@ -37,6 +37,9 @@ void ExportTable::keyPressEvent(QKeyEvent *event)
     if(event->key() == Qt::Key_Return) {
         edit(currentIndex());
     }
+    else if(event->key() == Qt::Key_Plus) {
+        InsertItem("", "", "", "", "", "", "", "");
+    }
     else QTableWidget::keyPressEvent(event);
 }
 

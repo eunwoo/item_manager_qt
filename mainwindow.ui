@@ -153,8 +153,16 @@
     </property>
     <addaction name="action"/>
     <addaction name="action_U"/>
+    <addaction name="action_3"/>
+   </widget>
+   <widget class="QMenu" name="menu">
+    <property name="title">
+     <string>정보</string>
+    </property>
+    <addaction name="action_2"/>
    </widget>
    <addaction name="menu_f"/>
+   <addaction name="menu"/>
   </widget>
   <widget class="QStatusBar" name="statusbar"/>
   <widget class="QToolBar" name="toolBar">
@@ -234,6 +242,16 @@
    </property>
    <property name="shortcut">
     <string>Ctrl+A</string>
+   </property>
+  </action>
+  <action name="action_2">
+   <property name="text">
+    <string>주의사항</string>
+   </property>
+  </action>
+  <action name="action_3">
+   <property name="text">
+    <string>설정</string>
    </property>
   </action>
  </widget>

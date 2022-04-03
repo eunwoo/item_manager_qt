@@ -41,11 +41,30 @@ void ItemTable::AddItem(QString name, QString price, QString stock, bool isActiv
 
 void ItemTable::keyPressEvent(QKeyEvent *event)
 {
-    qInfo() << "onKeyPressEvent";
+    qInfo() << "ItemTable::onKeyPressEvent";
     if(event->key() == Qt::Key_Return) {
+        if(item(currentRow(), currentColumn()) == nullptr) {
+            insertRow(currentRow());
+            AddItem("", "", "", true, "", currentRow());
+        }
+        else {
+            edit(currentIndex());
+        }
         edit(currentIndex());
+        qInfo() << "Enter";
     }
-    else QTableWidget::keyPressEvent(event);
+    else if(event->key() == Qt::Key_Plus){
+        InsertItem("-", "", "", false, "");
+        event->ignore();
+        return;
+    }
+    else {
+        if(item(currentRow(), currentColumn()) == nullptr) {
+//            insertRow(currentRow());
+            AddItem("-", "", "", true, "", currentRow());
+        }
+        QTableWidget::keyPressEvent(event);
+    }
 }
 
 void ItemTable::Find(QString filter_text)

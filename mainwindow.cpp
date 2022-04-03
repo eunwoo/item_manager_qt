@@ -13,11 +13,13 @@
 #include <QMessageBox>
 #include <QStandardItemModel>
 #include "newitemdialog.h"
+#include "settingdialog.h"
 #include "cellitemchkbox.h"
 #include "cellitemspinbox.h"
 #include "ItemTable.h"
 #include "ExportTable.h"
 #include "parser.h"
+#include <QStack>
 
 MainWindow::MainWindow(QWidget *parent)
     : QMainWindow(parent)
@@ -69,6 +71,7 @@ MainWindow::MainWindow(QWidget *parent)
     setGeometry(100,100, 1200, 800);
     setWindowTitle(QString("아이템 관리자 - ") + QString(APP_VERSION));
 //    setWindowIcon(QIcon("up.png"));
+    HtmlExportMode = HTML_EXPORT_LIST;
 
     LoadData();
     rowSelected = new QMap<int, int>();
@@ -154,7 +157,7 @@ void MainWindow::on_pushButton_clicked()    // 불러오기
     // 내보내기 테이블 초기화
     ClearTable(ui->exportTableWidget);
     sheet = sheets->querySubObject("Item(int)", 3);
-    for (int r = 1; r <= true; ++r) {
+    for (int r = 1; true; ++r) {
         auto cCell1 = sheet->querySubObject("Cells(int,int)", r + 1, 1);    // 태그
         auto cCell2 = sheet->querySubObject("Cells(int,int)", r + 1, 2);    // txt 파일변환
         auto cCell3 = sheet->querySubObject("Cells(int,int)", r + 1, 3);    // 글자크기
@@ -165,17 +168,49 @@ void MainWindow::on_pushButton_clicked()    // 불러오기
         auto cCell8 = sheet->querySubObject("Cells(int,int)", r + 1, 8);    // 글자색
 
         QVariant data1 = cCell1->dynamicCall("Value()");
+        if(data1 == QVariant::Invalid) {
+            break;
+        }
         QVariant data2 = cCell2->dynamicCall("Value()");
+        if(data2 == QVariant::Invalid) {
+            data2 = QVariant("");
+        }
         QVariant data3 = cCell3->dynamicCall("Value()");
+        if(data3 == QVariant::Invalid) {
+            data3 = QVariant("");
+        }
         QVariant data4 = cCell4->dynamicCall("Value()");
+        if(data4 == QVariant::Invalid) {
+            data4 = QVariant("");
+        }
         QVariant data5 = cCell5->dynamicCall("Value()");
+        if(data5 == QVariant::Invalid) {
+            data5 = QVariant("");
+        }
         QVariant data6 = cCell6->dynamicCall("Value()");
+        if(data6 == QVariant::Invalid) {
+            data6 = QVariant("");
+        }
         QVariant data7 = cCell7->dynamicCall("Value()");
+        if(data7 == QVariant::Invalid) {
+            data7 = QVariant("");
+        }
         QVariant data8 = cCell8->dynamicCall("Value()");
+        if(data8 == QVariant::Invalid) {
+            data8 = QVariant("");
+        }
 
         if(QString::compare(data1.toString(), "", Qt::CaseInsensitive) == 0) {
             break;
         }
+        qInfo() << data1.toString();
+        qInfo() << data2.toString();
+        qInfo() << data3.toString();
+        qInfo() << data4.toString();
+        qInfo() << data5.toString();
+        qInfo() << data6.toString();
+        qInfo() << data7.toString();
+        qInfo() << data8.toString();
         ui->exportTableWidget->AddItem(data1.toString(), data2.toString(), data3.toString(), data4.toString(),
                                        data5.toString(), data6.toString(), data7.toString(), data8.toString(), r - 1);
     }
@@ -579,6 +614,64 @@ void MainWindow::GenerateStyleTag(int row_export, QTextStream &out, QString text
     }
 
 }
+
+void MainWindow::GenerateStyleTagForList(int row_export, QStringList &out, QString text, int colspan)
+{
+    if(row_export != -1) {
+        QString fontsize;
+        QString fontweight;
+        QString fontstyle;
+        QString text_decoration;
+        QString fontcolor;
+        QString background_color;
+        QString style;
+
+        if(QString::compare(ui->exportTableWidget->item(row_export, 6)->text(), "") != 0) {
+            background_color += ui->exportTableWidget->item(row_export, 6)->text();
+        }
+        if(QString::compare(ui->exportTableWidget->item(row_export, 2)->text(), "") != 0) {  // 글자크기
+            fontsize += ui->exportTableWidget->item(row_export, 2)->text() + "rem";
+        }
+        if(QString::compare(ui->exportTableWidget->item(row_export, 3)->text(), "") != 0) {
+            fontweight += " bold";
+        }
+        if(QString::compare(ui->exportTableWidget->item(row_export, 4)->text(), "") != 0) {
+            fontstyle += " italic";
+        }
+        if(QString::compare(ui->exportTableWidget->item(row_export, 5)->text(), "") != 0) {
+            text_decoration += "underline";
+        }
+        if(QString::compare(ui->exportTableWidget->item(row_export, 7)->text(), "") != 0) {
+            fontcolor += ui->exportTableWidget->item(row_export, 7)->text();
+        }
+        if(fontsize.length() > 0) {
+            style += "font-size: " + fontsize + ";";
+        }
+        if(fontweight.length() > 0) {
+            style += "font-weight: bold;";
+        }
+        if(text_decoration.length() > 0) {  // underline
+            style += "text-decoration: underline;";
+        }
+        if(fontcolor.length() > 0) {
+            style += "color: " + fontcolor + ";";
+        }
+        if(background_color.length() > 0) {
+            style += "background-color: " + background_color + ";";
+        }
+        if(style.length() > 0) {
+            out << "<div style=\"" << style << "\">";
+            out << convertToHtml(text) << "</div>";
+        }
+        else {
+            out << "<div>" << convertToHtml(text) << "</div>";
+        }
+    }
+    else {
+        out << convertToHtml(text);
+    }
+
+}
 int MainWindow::FindExportTag(QMap<QString, int> &map, QString srcText)
 {
     QList<QString> tags = map.keys();
@@ -590,37 +683,23 @@ int MainWindow::FindExportTag(QMap<QString, int> &map, QString srcText)
     }
     return -1;
 }
-void MainWindow::exportToHtml(QString filename, bool is_only_editable, int export_option)
+int MainWindow::FindListLevel(QMap<QString, int> &map, QString srcText)
 {
-    QStringList splitFilename = filename.split(".");
-    splitFilename.removeAt(splitFilename.length() - 1);
-    splitFilename << ".html";
-    QFile file(splitFilename.join(""));
-    if(!file.open(QFile::WriteOnly | QFile::Text)) {
-        qInfo() << "error in opening file";
-        return;
+    QList<QString> tags = map.keys();
+    for(QList<QString>::iterator itr = tags.begin(); itr < tags.end(); ++itr)
+    {
+        if(srcText.contains(*itr)) {
+            return map.value(*itr);
+        }
     }
+    return -1;
+}
+void MainWindow::exportToHtmlTable(QTextStream &out, bool is_only_editable, int price_row, int stock_row, int tag_row, QMap<QString, int> &exportTag, int export_option)
+{
+    //    out << tr("<html>\n");
+    //    out << tr("<head></head>\n");
+    //    out << tr("<body>\n");
 
-    MakeExportJson();
-    int price_row = GetRowByNameInExportTable("* 가격");
-    int stock_row = GetRowByNameInExportTable("* 재고");
-    int tag_row = GetRowByNameInExportTable("* 검색어");
-    QMap<QString, int> exportTag;
-    for(int i = 0; i<ui->exportTableWidget->rowCount(); ++i) {
-        QTableWidgetItem *item = ui->exportTableWidget->item(i, 0);
-        if(item == nullptr) break;
-        exportTag.insert(item->text().mid(item->text().indexOf("<")), i);
-    }
-    qInfo() << exportTag;
-
-    QTextStream out(&file);
-//    QTextStream out(stderr);
-    out.setCodec("UTF-8");
-    QString strOut;
-
-    out << tr("<html>\n");
-    out << tr("<head></head>\n");
-    out << tr("<body>\n");
     out << tr("<table border=\"1\" width=\"100%\" style=\"border-collapse:collapse\">\n");
 
     out << tr("<tr>\n");
@@ -697,8 +776,163 @@ void MainWindow::exportToHtml(QString filename, bool is_only_editable, int expor
     }
 
     out << tr("</table>\n");
-    out << tr("</body>\n");
-    out << tr("</html>\n");
+//    out << tr("</body>\n");
+//    out << tr("</html>\n");
+
+}
+
+void MainWindow::exportToHtmlList(QTextStream &out, bool is_only_editable, int price_row, int stock_row, int tag_row, QMap<QString, int> &exportTag, int export_option)
+{
+    int ulDepth = 0;
+    ulDepth++;
+
+    QMap<QString, int> levelDefine;
+    levelDefine.insert("대제목", 1);
+    levelDefine.insert("중제목", 2);
+    levelDefine.insert("중제목1", 2);
+    levelDefine.insert("중제목2", 3);
+    levelDefine.insert("중제목3", 4);
+    levelDefine.insert("중제목4", 5);
+    levelDefine.insert("중제목5", 6);
+    levelDefine.insert("중제목6", 7);
+    levelDefine.insert("중제목7", 8);
+    levelDefine.insert("중제목8", 9);
+    levelDefine.insert("중제목9", 10);
+    levelDefine.insert("중제목10", 11);
+    levelDefine.insert("소제목", 12);
+
+    QStringList strLine;
+    QStack<int> level;
+    level.push(0);
+    out << "<ul>\n";
+    for(int i = 0; i < ui->tableWidget->rowCount(); ++i) {
+        if(ui->tableWidget->item(i, 0) == nullptr) break;
+        // 행이 비어있으면 더이상 아이템이 없다고 간주
+        if(QString::compare(ui->tableWidget->item(i, 0)->text(), "", Qt::CaseInsensitive) == 0) {
+            break;
+        }
+        CellItemChkBox *chk = (CellItemChkBox *)ui->tableWidget->cellWidget(i, 3);
+        bool isActivated = chk->GetCheck() == Qt::Checked;
+        if(!is_only_editable || isActivated) {
+            QString strCell1;
+            int exportRow;
+            strLine.clear();
+            if(QString::compare(ui->tableWidget->item(i, 0)->text(), "@@") == 0) {
+                continue;
+            }
+            else if((exportRow = FindExportTag(exportTag, ui->tableWidget->item(i, 0)->text())) != -1) {
+                strCell1.sprintf("%s", ui->tableWidget->item(i, 0)->text().toUtf8().constData());
+                int newLevel;
+                newLevel = FindListLevel(levelDefine, ui->tableWidget->item(i, 0)->text());
+                strLine << tr("<li>");
+                GenerateStyleTagForList(exportRow, strLine, strCell1.replace(exportTag.key(exportRow), ""), 1);
+                strLine << tr("</li>\n");
+                if(level.isEmpty() || level.top() < newLevel) {
+                    level.push(newLevel);
+                    strLine << tr("<ul>\n");
+                }
+                else {
+                    if(newLevel != -1) {
+                        while(level.top() > newLevel) {
+                            strLine << tr("</ul>\n");
+                            if(!level.isEmpty()) {
+                                level.pop();
+                                if(level.isEmpty()) break;
+                            }
+                            else {
+                                break;
+                            }
+                        }
+                    }
+                }
+                out << strLine.join("");
+                continue;
+            }
+            else {
+                // 품명
+                strCell1.sprintf("%s", ui->tableWidget->item(i, 0)->text().toUtf8().constData());
+                out << tr("<li><div style=\"display:flex;\">");
+                out << convertToHtml(strCell1);
+            }
+            // 가격 출력
+            if(QString::compare(ui->tableWidget->item(i,1)->text(), "") == 0) {
+                out << tr("\n");
+            }
+            else {
+                float price_multiplied = ui->tableWidget->item(i,1)->text().toFloat() * ui->lineEdit->text().toFloat();
+                QStringList strList;
+                QString strPrice;
+                strPrice.sprintf("%.1f", price_multiplied);
+                strList << " - " << strPrice;
+//                qInfo() << QString::number((int)price_multiplied);
+                QString strEquivItem = GetEquivalentItem(price_multiplied, export_option);
+//                qInfo() << strEquivItem;
+                if(export_option > 0 && QString::compare(strEquivItem, "") != 0) {
+                    strList << " 또는 " << strEquivItem;
+                }
+                strCell1.sprintf("%s",strList.join("").toUtf8().constData());
+                GenerateStyleTagForList(price_row, strLine, strCell1);
+            }
+            // 재고 출력
+            CellItemSpinBox *spin = (CellItemSpinBox *)ui->tableWidget->cellWidget(i, 2);
+            if(spin == nullptr) {
+            }
+            else {
+                qInfo() << spin->spinBox->value();
+                if(spin->spinBox->value() > 0) {
+                    QString strStock = QString::number(spin->spinBox->value()).toUtf8().constData();
+                    strLine << "(재고 : ";
+                    GenerateStyleTagForList(stock_row, strLine, strStock);
+                    strLine <<  "개)";
+                }
+            }
+            // 검색어
+            if(ui->tableWidget->item(i,4) != nullptr) {
+                GenerateStyleTagForList(tag_row, strLine, ui->tableWidget->item(i,4)->text());
+            }
+            out << strLine.join("") << "</li>\n";
+
+        }
+    }
+    out << "</ul>\n";
+
+}
+
+void MainWindow::exportToHtml(QString filename, bool is_only_editable, int export_option)
+{
+    QStringList splitFilename = filename.split(".");
+    splitFilename.removeAt(splitFilename.length() - 1);
+    splitFilename << ".html";
+    QFile file(splitFilename.join(""));
+    if(!file.open(QFile::WriteOnly | QFile::Text)) {
+        qInfo() << "error in opening file";
+        return;
+    }
+
+    MakeExportJson();
+    int price_row = GetRowByNameInExportTable("* 가격");
+    int stock_row = GetRowByNameInExportTable("* 재고");
+    int tag_row = GetRowByNameInExportTable("* 검색어");
+    QMap<QString, int> exportTag;
+    for(int i = 0; i<ui->exportTableWidget->rowCount(); ++i) {
+        QTableWidgetItem *item = ui->exportTableWidget->item(i, 0);
+        if(item == nullptr) break;
+        exportTag.insert(item->text().mid(item->text().indexOf("<")), i);
+    }
+    qInfo() << exportTag;
+
+    QTextStream out(&file);
+//    QTextStream out(stderr);
+    out.setCodec("UTF-8");
+    QString strOut;
+
+    if(HtmlExportMode == HTML_EXPORT_TABLE) {
+        exportToHtmlTable(out, is_only_editable, price_row, stock_row, tag_row, exportTag, export_option);
+    }
+    else {
+        exportToHtmlList(out, is_only_editable, price_row, stock_row, tag_row, exportTag, export_option);
+    }
+
 
     file.flush();
     file.close();
@@ -881,6 +1115,11 @@ bool MainWindow::LoadData()
         ui->tableWidget->setRowHeight(i, height);
     }
 
+    items = jsonObj.value("html_export_mode");
+    if(items != QJsonValue::Null) {
+        HtmlExportMode = items.toString().toInt();
+    }
+
     // restore column width
     items = jsonObj.value("column_width");
     if(items != QJsonValue::Null) {
@@ -987,6 +1226,7 @@ bool MainWindow::SaveData()
     MakeExportJson();
     root["export"] = json_export;
     root["row_height"] = QString::number(ui->tableWidget->rowHeight(0));
+    root["html_export_mode"] = QString::number(HtmlExportMode);
 
     QJsonArray json_column_width;
     {
@@ -1252,4 +1492,31 @@ void MainWindow::on_action_A_triggered()    // 아래로 이동
 }
 
 
+
+
+void MainWindow::on_action_2_triggered()    // 주의사항
+{
+    QMessageBox msgBox;
+    msgBox.setStandardButtons(QMessageBox::Ok);
+    msgBox.setText("아이템 테이블에서 중간에 빈줄이 있으면 그 아래의 데이터가 저장되지 않습니다. 빈 줄이 없도록 주의하세요");
+    msgBox.exec();
+}
+
+
+void MainWindow::on_action_3_triggered()    // 설정
+{
+    SettingDialog *dialog = new SettingDialog();
+    Ui_SettingDialog uiDialog;
+    uiDialog.setupUi(dialog);
+
+    uiDialog.comboBox->setCurrentIndex(HtmlExportMode);
+
+    dialog->setFixedSize(dialog->width(), dialog->height());
+    dialog->setWindowTitle("설정");
+    dialog->setModal(true);
+    if(dialog->exec() == QDialog::Accepted) {
+        qInfo() << "accepted";
+        HtmlExportMode = uiDialog.comboBox->currentIndex();
+    }
+}
 
