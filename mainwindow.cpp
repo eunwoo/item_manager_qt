@@ -803,8 +803,7 @@ void MainWindow::exportToHtmlList(QTextStream &out, bool is_only_editable, int p
 
     QStringList strLine;
     QStack<int> level;
-    level.push(0);
-    out << "<ul>\n";
+    bool isNeedIndent = false;
     for(int i = 0; i < ui->tableWidget->rowCount(); ++i) {
         if(ui->tableWidget->item(i, 0) == nullptr) break;
         // 행이 비어있으면 더이상 아이템이 없다고 간주
@@ -824,31 +823,50 @@ void MainWindow::exportToHtmlList(QTextStream &out, bool is_only_editable, int p
                 strCell1.sprintf("%s", ui->tableWidget->item(i, 0)->text().toUtf8().constData());
                 int newLevel;
                 newLevel = FindListLevel(levelDefine, ui->tableWidget->item(i, 0)->text());
-                strLine << tr("<li>");
-                GenerateStyleTagForList(exportRow, strLine, strCell1.replace(exportTag.key(exportRow), ""), 1);
-                strLine << tr("</li>\n");
-                if(level.isEmpty() || level.top() < newLevel) {
+                qInfo() << "newLevel : " << newLevel;
+                isNeedIndent = true;
+                if(newLevel != -1 && !level.isEmpty()) {
+                    qInfo() << "level top : " << level.top();
+                    while(level.top() >= newLevel) {
+                        strLine << tr("</ul>\n");
+                        isNeedIndent = false;
+                        if(!level.isEmpty()) {
+                            level.pop();
+                            if(level.isEmpty()) break;
+                        }
+                        else {
+                            break;
+                        }
+                    }
+                }
+                if(isNeedIndent) {
                     level.push(newLevel);
                     strLine << tr("<ul>\n");
                 }
                 else {
-                    if(newLevel != -1) {
-                        while(level.top() > newLevel) {
-                            strLine << tr("</ul>\n");
-                            if(!level.isEmpty()) {
-                                level.pop();
-                                if(level.isEmpty()) break;
-                            }
-                            else {
-                                break;
-                            }
-                        }
-                    }
+                    level.push(newLevel);
                 }
+
+                strLine << tr("<li>");
+                GenerateStyleTagForList(exportRow, strLine, strCell1.replace(exportTag.key(exportRow), ""), 1);
+                strLine << tr("</li>\n");
+                isNeedIndent = true;
+//                if(level.isEmpty() || level.top() < newLevel) {
+//                    level.push(newLevel);
+//                    strLine << tr("<ul>\n");
+//                }
+//                else {
+//                }
                 out << strLine.join("");
+                qInfo() << "level count: " << level.length();
+                qInfo() << level;
                 continue;
             }
             else {
+                if(isNeedIndent) {
+                    out << tr("<ul>\n");
+                    isNeedIndent = false;
+                }
                 // 품명
                 strCell1.sprintf("%s", ui->tableWidget->item(i, 0)->text().toUtf8().constData());
                 out << tr("<li><div style=\"display:flex;\">");
@@ -878,7 +896,6 @@ void MainWindow::exportToHtmlList(QTextStream &out, bool is_only_editable, int p
             if(spin == nullptr) {
             }
             else {
-                qInfo() << spin->spinBox->value();
                 if(spin->spinBox->value() > 0) {
                     QString strStock = QString::number(spin->spinBox->value()).toUtf8().constData();
                     strLine << "(재고 : ";

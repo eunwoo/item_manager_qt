@@ -61,7 +61,7 @@ void ItemTable::keyPressEvent(QKeyEvent *event)
     else {
         if(item(currentRow(), currentColumn()) == nullptr) {
 //            insertRow(currentRow());
-            AddItem("-", "", "", true, "", currentRow());
+            AddItem("", "", "", true, "", currentRow());
         }
         QTableWidget::keyPressEvent(event);
     }

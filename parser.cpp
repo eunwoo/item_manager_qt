@@ -46,12 +46,10 @@ void Parser::Collapse(int next) {
         QRegularExpressionMatch match = re.match(current->item->tag_raw, 0);
         QRegularExpressionMatch match2 = re2.match(current->item->tag_raw, 0);
         if(match.hasMatch()) {
-            qInfo() << "found";
             current->item->tag = "<div style=\"margin-bottom:" + match.captured(1) + "rem;\">";
             current->item->tag_name = "<div>";
         }
         else if(match2.hasMatch()) {
-            qInfo() << "found";
             current->item->tag = "<div style=\"margin-top:" + match2.captured(1) + "rem;\">";
             current->item->tag_name = "<div>";
         }
